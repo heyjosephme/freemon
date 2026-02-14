@@ -40,7 +40,13 @@ class Views::Deductions::Index < Views::Base
                   td(class: td_classes) { deduction.deduction_type_label }
                   td(class: "#{td_classes} text-right") { helpers.number_to_currency(deduction.amount, unit: "¥", precision: 0) }
                   td(class: "#{td_classes} text-right") do
-                    a(href: edit_fiscal_year_deduction_path(@fiscal_year, deduction), class: "text-indigo-600 hover:text-indigo-800 text-sm") { "編集" }
+                    div(class: "flex gap-3 justify-end") do
+                      a(href: edit_fiscal_year_deduction_path(@fiscal_year, deduction), class: "text-indigo-600 hover:text-indigo-800 text-sm") { "編集" }
+                      button_to "削除", fiscal_year_deduction_path(@fiscal_year, deduction),
+                        method: :delete,
+                        class: "text-red-600 hover:text-red-800 text-sm",
+                        data: { turbo_confirm: "「#{deduction.deduction_type_label}」¥#{ActiveSupport::NumberHelper.number_to_delimited(deduction.amount)} を削除しますか？" }
+                    end
                   end
                 end
               end

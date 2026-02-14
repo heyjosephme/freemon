@@ -45,7 +45,13 @@ class Views::Expenses::Index < Views::Base
                 td(class: "#{td_classes} text-right") { "#{expense.business_ratio}%" }
                 td(class: "#{td_classes} text-right") { helpers.number_to_currency(expense.deductible_amount, unit: "¥", precision: 0) }
                 td(class: "#{td_classes} text-right") do
-                  a(href: edit_fiscal_year_expense_path(@fiscal_year, expense), class: "text-indigo-600 hover:text-indigo-800 text-sm") { "編集" }
+                  div(class: "flex gap-3 justify-end") do
+                    a(href: edit_fiscal_year_expense_path(@fiscal_year, expense), class: "text-indigo-600 hover:text-indigo-800 text-sm") { "編集" }
+                    button_to "削除", fiscal_year_expense_path(@fiscal_year, expense),
+                      method: :delete,
+                      class: "text-red-600 hover:text-red-800 text-sm",
+                      data: { turbo_confirm: "「#{expense.description}」¥#{ActiveSupport::NumberHelper.number_to_delimited(expense.amount)} を削除しますか？" }
+                  end
                 end
               end
             end

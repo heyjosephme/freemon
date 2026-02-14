@@ -15,6 +15,25 @@ class Views::Revenues::Form < Views::Base
         field(f, :amount, "金額 (税込) (Amount, tax included)", type: :number_field, min: 1, placeholder: "¥")
         field(f, :date, "日付 (Date)", type: :date_field)
 
+        div(class: "mb-4") do
+          f.label :invoices, "請求書・証憑 (Invoices/Documents)", class: "block text-sm font-medium text-gray-700 mb-1"
+          f.file_field :invoices, multiple: true, accept: ".pdf,.png,.jpg,.jpeg",
+            class: "block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+          p(class: "mt-1 text-sm text-gray-500") { "PDF, PNG, JPG (複数選択可)" }
+        end
+
+        if @revenue.persisted? && @revenue.invoices.attached?
+          div(class: "mb-4") do
+            p(class: "text-sm font-medium text-gray-700 mb-2") { "添付済みファイル:" }
+            @revenue.invoices.each do |invoice|
+              div(class: "flex items-center gap-2 text-sm text-gray-600 mb-1") do
+                span { invoice.filename.to_s }
+                span(class: "text-gray-400") { "(#{helpers.number_to_human_size(invoice.byte_size)})" }
+              end
+            end
+          end
+        end
+
         div(class: "flex gap-3 pt-4") do
           f.submit(@revenue.persisted? ? "更新" : "登録",
             class: "inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 cursor-pointer")

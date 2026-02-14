@@ -31,7 +31,13 @@ class Views::Revenues::Index < Views::Base
                 td(class: "#{td_classes} text-right") { helpers.number_to_currency(revenue.amount, unit: "¥", precision: 0) }
                 td(class: "#{td_classes} text-right text-gray-500") { helpers.number_to_currency(revenue.consumption_tax_component, unit: "¥", precision: 0) }
                 td(class: "#{td_classes} text-right") do
-                  a(href: edit_fiscal_year_revenue_path(@fiscal_year, revenue), class: "text-indigo-600 hover:text-indigo-800 text-sm") { "編集" }
+                  div(class: "flex gap-3 justify-end") do
+                    a(href: edit_fiscal_year_revenue_path(@fiscal_year, revenue), class: "text-indigo-600 hover:text-indigo-800 text-sm") { "編集" }
+                    button_to "削除", fiscal_year_revenue_path(@fiscal_year, revenue),
+                      method: :delete,
+                      class: "text-red-600 hover:text-red-800 text-sm",
+                      data: { turbo_confirm: "「#{revenue.client_name}」の売上 ¥#{ActiveSupport::NumberHelper.number_to_delimited(revenue.amount)} を削除しますか？" }
+                  end
                 end
               end
             end

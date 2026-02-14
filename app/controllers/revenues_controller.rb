@@ -51,6 +51,6 @@ class RevenuesController < ApplicationController
   end
 
   def revenue_params
-    params.expect(revenue: [ :client_name, :amount, :date ])
+    params.expect(revenue: [ :client_name, :amount, :date, invoices: [] ])
   end
 end

@@ -3,6 +3,7 @@
 class Revenue < ApplicationRecord
   belongs_to :fiscal_year
   has_one :journal_entry, as: :source, dependent: :destroy
+  has_many_attached :invoices
 
   after_save :sync_journal_entry
   after_destroy :destroy_journal_entry
