@@ -50,7 +50,7 @@ class SalaryIncomesController < ApplicationController
   end
 
   def set_salary_income
-    @salary_income = @fiscal_year.salary_income!
+    @salary_income = @fiscal_year.salary_income or raise ActiveRecord::RecordNotFound
   end
 
   def salary_income_params

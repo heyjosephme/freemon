@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class FiscalYearsController < ApplicationController
-  before_action :set_fiscal_year, only: [ :show, :edit, :update, :destroy, :tax_summary ]
+  before_action :set_fiscal_year, only: [ :show, :edit, :update, :destroy, :tax_summary, :journal, :general_ledger, :income_statement, :balance_sheet ]
 
   def index
     @fiscal_years = FiscalYear.order(year: :desc)
@@ -41,6 +41,29 @@ class FiscalYearsController < ApplicationController
   def destroy
     @fiscal_year.destroy
     redirect_to fiscal_years_path, notice: "確定申告年度を削除しました。"
+  end
+
+  def journal
+    entries = @fiscal_year.journal_entries.includes(lines: :account).chronological
+    render Views::FiscalYears::Journal.new(fiscal_year: @fiscal_year, journal_entries: entries)
+  end
+
+  def general_ledger
+    @account = params[:account_id].present? ? Account.find(params[:account_id]) : Account.ordered.first
+    entries = @fiscal_year.journal_entries
+      .joins(:lines).where(journal_entry_lines: { account_id: @account&.id })
+      .includes(lines: :account).distinct.chronological
+    render Views::FiscalYears::GeneralLedger.new(
+      fiscal_year: @fiscal_year, account: @account, journal_entries: entries, accounts: Account.ordered
+    )
+  end
+
+  def income_statement
+    render Views::FiscalYears::IncomeStatement.new(fiscal_year: @fiscal_year)
+  end
+
+  def balance_sheet
+    render Views::FiscalYears::BalanceSheet.new(fiscal_year: @fiscal_year)
   end
 
   def tax_summary

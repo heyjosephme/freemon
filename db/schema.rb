@@ -10,7 +10,18 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_14_061540) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_14_070053) do
+  create_table "accounts", force: :cascade do |t|
+    t.integer "account_type", null: false
+    t.string "code", null: false
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.string "name_en"
+    t.boolean "system_default", default: false, null: false
+    t.datetime "updated_at", null: false
+    t.index ["code"], name: "index_accounts_on_code", unique: true
+  end
+
   create_table "deductions", force: :cascade do |t|
     t.integer "amount", null: false
     t.datetime "created_at", null: false
@@ -41,6 +52,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_061540) do
     t.index ["year"], name: "index_fiscal_years_on_year", unique: true
   end
 
+  create_table "journal_entries", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.date "date", null: false
+    t.string "description", null: false
+    t.integer "fiscal_year_id", null: false
+    t.integer "source_id"
+    t.string "source_type"
+    t.datetime "updated_at", null: false
+    t.index ["fiscal_year_id", "date"], name: "index_journal_entries_on_fiscal_year_id_and_date"
+    t.index ["fiscal_year_id"], name: "index_journal_entries_on_fiscal_year_id"
+    t.index ["source_type", "source_id"], name: "index_journal_entries_on_source_type_and_source_id", unique: true, where: "source_type IS NOT NULL"
+  end
+
+  create_table "journal_entry_lines", force: :cascade do |t|
+    t.integer "account_id", null: false
+    t.integer "amount", null: false
+    t.datetime "created_at", null: false
+    t.integer "journal_entry_id", null: false
+    t.integer "side", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_journal_entry_lines_on_account_id"
+    t.index ["journal_entry_id"], name: "index_journal_entry_lines_on_journal_entry_id"
+  end
+
   create_table "revenues", force: :cascade do |t|
     t.integer "amount", null: false
     t.string "client_name", null: false
@@ -63,6 +98,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_061540) do
 
   add_foreign_key "deductions", "fiscal_years"
   add_foreign_key "expenses", "fiscal_years"
+  add_foreign_key "journal_entries", "fiscal_years"
+  add_foreign_key "journal_entry_lines", "accounts"
+  add_foreign_key "journal_entry_lines", "journal_entries"
   add_foreign_key "revenues", "fiscal_years"
   add_foreign_key "salary_incomes", "fiscal_years"
 end

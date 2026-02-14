@@ -43,6 +43,18 @@ No external services needed. All backed by SQLite:
 - **Solid Queue** — Active Job backend (runs inside Puma via `SOLID_QUEUE_IN_PUMA=true` in production)
 - **Solid Cable** — Action Cable adapter
 
+### Domain: Japanese Freelancer Tax & Bookkeeping
+
+**Core models:** `FiscalYear` → `SalaryIncome`, `Revenue`, `Expense`, `Deduction` (tax data), `JournalEntry` → `JournalEntryLine` (bookkeeping), `Account` (chart of accounts)
+
+**Double-entry bookkeeping (複式簿記):** Revenue/Expense records auto-generate journal entries via `JournalEntrySync` service (after_save callbacks). Manual journal entries also supported. Accounting method: 税込経理方式 (tax-inclusive).
+
+**Tax calculators** (`app/services/`): `IncomeTaxCalculator` and `ConsumptionTaxCalculator` read from Revenue/Expense models directly. Journal entries are a parallel bookkeeping layer.
+
+**Financial reports** (computed from journal entries): 仕訳帳 (Journal), 総勘定元帳 (General Ledger), 損益計算書 (P&L), 貸借対照表 (Balance Sheet)
+
+**Money:** All amounts are integers (yen). No floats. Tax extraction: `amount * 10 / 110` (multiply first). Taxable income rounded down to nearest ¥1,000.
+
 ### Testing
 
 - **Minitest** with parallel workers (`number_of_processors`)

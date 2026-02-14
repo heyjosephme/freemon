@@ -6,8 +6,18 @@ Rails.application.routes.draw do
     resources :revenues
     resources :expenses
     resources :deductions
-    get :tax_summary, on: :member
+    resources :journal_entries, only: [ :index, :new, :create, :edit, :update, :destroy ]
+
+    member do
+      get :tax_summary
+      get :journal
+      get :general_ledger
+      get :income_statement
+      get :balance_sheet
+    end
   end
+
+  resources :accounts, only: [ :index, :new, :create, :edit, :update ]
 
   get "up" => "rails/health#show", as: :rails_health_check
 end

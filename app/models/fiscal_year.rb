@@ -5,6 +5,7 @@ class FiscalYear < ApplicationRecord
   has_many :revenues, dependent: :destroy
   has_many :expenses, dependent: :destroy
   has_many :deductions, dependent: :destroy
+  has_many :journal_entries, dependent: :destroy
 
   enum :filing_type, { blue_65: 0, blue_10: 1, white: 2 }, default: :blue_65
 

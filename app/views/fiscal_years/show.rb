@@ -15,6 +15,19 @@ class Views::FiscalYears::Show < Views::Base
       render Badge.new(text: @fiscal_year.filing_type_label, color: @fiscal_year.white? ? :gray : :indigo)
     end
 
+    # Bookkeeping section
+    div(class: "mb-6") do
+      render Card.new(title: "帳簿・レポート (Bookkeeping & Reports)") do
+        div(class: "grid grid-cols-2 md:grid-cols-5 gap-3") do
+          render Button.new(href: fiscal_year_journal_entries_path(@fiscal_year), variant: :secondary, size: :sm) { "仕訳帳" }
+          render Button.new(href: general_ledger_fiscal_year_path(@fiscal_year), variant: :secondary, size: :sm) { "総勘定元帳" }
+          render Button.new(href: income_statement_fiscal_year_path(@fiscal_year), variant: :secondary, size: :sm) { "損益計算書" }
+          render Button.new(href: balance_sheet_fiscal_year_path(@fiscal_year), variant: :secondary, size: :sm) { "貸借対照表" }
+          render Button.new(href: tax_summary_fiscal_year_path(@fiscal_year), size: :sm) { "税額計算" }
+        end
+      end
+    end
+
     div(class: "grid grid-cols-1 md:grid-cols-2 gap-6") do
       salary_card
       revenue_card

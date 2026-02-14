@@ -2,6 +2,10 @@
 
 class Expense < ApplicationRecord
   belongs_to :fiscal_year
+  has_one :journal_entry, as: :source, dependent: :destroy
+
+  after_save :sync_journal_entry
+  after_destroy :destroy_journal_entry
 
   enum :category, {
     equipment: 0,       # 備品・器具
@@ -48,5 +52,15 @@ class Expense < ApplicationRecord
 
   def category_label
     CATEGORY_LABELS[category]
+  end
+
+  private
+
+  def sync_journal_entry
+    JournalEntrySync.sync(self) if Account.any?
+  end
+
+  def destroy_journal_entry
+    JournalEntrySync.destroy(self)
   end
 end

@@ -1,0 +1,12 @@
+# frozen_string_literal: true
+
+class Views::Accounts::Edit < Views::Base
+  def initialize(account:)
+    @account = account
+  end
+
+  def view_template
+    render PageHeader.new(title: "勘定科目の編集", back_path: accounts_path)
+    render Views::Accounts::Form.new(account: @account)
+  end
+end
