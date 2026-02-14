@@ -23,8 +23,17 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body>
-    <main class="container mx-auto mt-28 px-5 flex">
+  <body class="bg-gray-50 min-h-screen">
+    <%= render Components::Navbar.new %>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <% if notice %>
+        <%= render Components::Alert.new(message: notice, type: :success) %>
+      <% end %>
+      <% if alert %>
+        <%= render Components::Alert.new(message: alert, type: :error) %>
+      <% end %>
+
       <%= yield %>
     </main>
   </body>
