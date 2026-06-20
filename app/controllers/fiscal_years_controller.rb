@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class FiscalYearsController < ApplicationController
-  before_action :set_fiscal_year, only: [ :show, :edit, :update, :destroy, :tax_summary, :journal, :general_ledger, :income_statement, :balance_sheet ]
+  before_action :set_fiscal_year, only: [ :show, :edit, :update, :destroy, :tax_summary, :journal, :general_ledger, :income_statement, :balance_sheet, :cashflow, :tax_reserve, :tax_saving ]
 
   def index
     @fiscal_years = FiscalYear.order(year: :desc)
@@ -9,7 +9,10 @@ class FiscalYearsController < ApplicationController
   end
 
   def show
-    render Views::FiscalYears::Show.new(fiscal_year: @fiscal_year)
+    render Views::FiscalYears::Show.new(
+      fiscal_year: @fiscal_year,
+      reserve: TaxReserveEstimator.new(@fiscal_year).calculate
+    )
   end
 
   def new
@@ -73,6 +76,27 @@ class FiscalYearsController < ApplicationController
       fiscal_year: @fiscal_year,
       income_tax: income_tax,
       consumption_tax: consumption_tax
+    )
+  end
+
+  def cashflow
+    render Views::FiscalYears::Cashflow.new(
+      fiscal_year: @fiscal_year,
+      report: CashflowReport.new(@fiscal_year)
+    )
+  end
+
+  def tax_reserve
+    render Views::FiscalYears::TaxReserve.new(
+      fiscal_year: @fiscal_year,
+      reserve: TaxReserveEstimator.new(@fiscal_year).calculate
+    )
+  end
+
+  def tax_saving
+    render Views::FiscalYears::TaxSaving.new(
+      fiscal_year: @fiscal_year,
+      simulation: TaxSavingSimulator.new(@fiscal_year).calculate
     )
   end
 

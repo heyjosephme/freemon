@@ -14,6 +14,11 @@ Rails.application.routes.draw do
       get :general_ledger
       get :income_statement
       get :balance_sheet
+
+      # Analysis & planning
+      get :cashflow
+      get :tax_reserve
+      get :tax_saving
     end
   end
 

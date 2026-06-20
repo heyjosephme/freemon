@@ -20,8 +20,10 @@ class IncomeTaxCalculator
 
   attr_reader :fiscal_year
 
-  def initialize(fiscal_year)
+  def initialize(fiscal_year, extra_income_deductions: 0, extra_business_expenses: 0)
     @fiscal_year = fiscal_year
+    @extra_income_deductions = extra_income_deductions
+    @extra_business_expenses = extra_business_expenses
   end
 
   def calculate
@@ -38,7 +40,7 @@ class IncomeTaxCalculator
     result[:total_expenses] = fiscal_year.total_expenses
     result[:blue_deduction_amount] = BLUE_DEDUCTIONS[fiscal_year.filing_type.to_sym]
 
-    business_profit_before_blue = result[:business_revenue] - result[:total_expenses]
+    business_profit_before_blue = result[:business_revenue] - result[:total_expenses] - @extra_business_expenses
     result[:blue_deduction_applied] = if business_profit_before_blue > 0
       [ result[:blue_deduction_amount], business_profit_before_blue ].min
     else
@@ -61,7 +63,8 @@ class IncomeTaxCalculator
     result[:additional_deductions] = fiscal_year.total_deductions_amount
     result[:total_deductions] = result[:basic_deduction] +
                                  result[:social_insurance_from_salary] +
-                                 result[:additional_deductions]
+                                 result[:additional_deductions] +
+                                 @extra_income_deductions
 
     # 5. Taxable income (課税所得) — floored at 0, rounded down to nearest 1000
     taxable = [ result[:total_income] - result[:total_deductions], 0 ].max
@@ -69,6 +72,7 @@ class IncomeTaxCalculator
 
     # 6. Income tax (所得税)
     result[:income_tax_base] = compute_income_tax(result[:taxable_income])
+    result[:income_tax_marginal_rate] = marginal_rate(result[:taxable_income])
     result[:reconstruction_tax] = (result[:income_tax_base] * RECONSTRUCTION_TAX_RATE).to_i
     result[:total_tax] = result[:income_tax_base] + result[:reconstruction_tax]
 
@@ -86,5 +90,13 @@ class IncomeTaxCalculator
 
     bracket = INCOME_TAX_BRACKETS.find { |b| taxable_income <= b[:limit] }
     ((taxable_income * bracket[:rate]) - bracket[:deduction]).to_i
+  end
+
+  # Marginal income-tax rate at the given taxable income (the bracket rate that
+  # applies to the next yen of income). Used by the tax-saving simulator.
+  def marginal_rate(taxable_income)
+    return 0.0 if taxable_income <= 0
+
+    INCOME_TAX_BRACKETS.find { |b| taxable_income <= b[:limit] }[:rate]
   end
 end
