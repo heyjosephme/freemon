@@ -1,9 +1,11 @@
 name: CI
 
+# No PR workflow (single contributor): every branch push gets checked before
+# it's merged into main. Dependabot pushes its branches too, so its PRs still
+# show these checks.
 on:
-  pull_request:
   push:
-    branches: [ main ]
+    branches: [ "**" ]
 
 jobs:
   scan_ruby:
