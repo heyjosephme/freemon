@@ -41,17 +41,7 @@ class Views::Expenses::Form < Views::Base
           p(class: "mt-1 text-sm text-gray-500") { "PDF, PNG, JPG (複数選択可)" }
         end
 
-        if @expense.persisted? && @expense.receipts.attached?
-          div(class: "mb-4") do
-            p(class: "text-sm font-medium text-gray-700 mb-2") { "添付済みファイル:" }
-            @expense.receipts.each do |receipt|
-              div(class: "flex items-center gap-2 text-sm text-gray-600 mb-1") do
-                span { receipt.filename.to_s }
-                span(class: "text-gray-400") { "(#{helpers.number_to_human_size(receipt.byte_size)})" }
-              end
-            end
-          end
-        end
+        render AttachedFiles.new(attachments: @expense.receipts, field_name: "expense[receipts][]")
 
         div(class: "flex gap-3 pt-4") do
           f.submit(@expense.persisted? ? "更新" : "登録",

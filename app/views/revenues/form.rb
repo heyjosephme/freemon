@@ -22,17 +22,7 @@ class Views::Revenues::Form < Views::Base
           p(class: "mt-1 text-sm text-gray-500") { "PDF, PNG, JPG (複数選択可)" }
         end
 
-        if @revenue.persisted? && @revenue.invoices.attached?
-          div(class: "mb-4") do
-            p(class: "text-sm font-medium text-gray-700 mb-2") { "添付済みファイル:" }
-            @revenue.invoices.each do |invoice|
-              div(class: "flex items-center gap-2 text-sm text-gray-600 mb-1") do
-                span { invoice.filename.to_s }
-                span(class: "text-gray-400") { "(#{helpers.number_to_human_size(invoice.byte_size)})" }
-              end
-            end
-          end
-        end
+        render AttachedFiles.new(attachments: @revenue.invoices, field_name: "revenue[invoices][]")
 
         div(class: "flex gap-3 pt-4") do
           f.submit(@revenue.persisted? ? "更新" : "登録",
