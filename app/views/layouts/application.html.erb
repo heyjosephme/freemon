@@ -24,7 +24,7 @@
   </head>
 
   <body class="bg-gray-50 min-h-screen">
-    <%= render Components::Navbar.new %>
+    <%= render Components::Navbar.new(fiscal_years: navbar_fiscal_years, active_fiscal_year: @fiscal_year) %>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <% if notice %>

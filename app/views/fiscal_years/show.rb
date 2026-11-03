@@ -1,21 +1,26 @@
 # frozen_string_literal: true
 
 class Views::FiscalYears::Show < Views::Base
-  def initialize(fiscal_year:, reserve:)
+  def initialize(fiscal_year:, reserve:, filing_year: nil, start_current_year: false)
     @fiscal_year = fiscal_year
     @reserve = reserve
+    @filing_year = filing_year
+    @start_current_year = start_current_year
   end
 
   def view_template
-    render PageHeader.new(title: "#{@fiscal_year.year}年 確定申告", back_path: fiscal_years_path) do
+    render PageHeader.new(title: "#{@fiscal_year.year}年", back_path: fiscal_years_path) do
       render Button.new(href: edit_fiscal_year_path(@fiscal_year), variant: :secondary, size: :sm) { "設定" }
       render Button.new(href: tax_summary_fiscal_year_path(@fiscal_year), size: :sm) { "税額計算" }
     end
 
-    div(class: "mb-4") do
+    div(class: "mb-4 flex gap-2") do
       render Badge.new(text: @fiscal_year.filing_type_label, color: @fiscal_year.white? ? :gray : :indigo)
+      render Badge.new(text: "今年", color: :green) if @fiscal_year.year == FiscalYear.current_year
     end
 
+    filing_banner
+    start_year_banner
     reserve_banner
 
     # Bookkeeping section
@@ -51,6 +56,38 @@ class Views::FiscalYears::Show < Views::Base
   end
 
   private
+
+  def filing_banner
+    return unless @filing_year
+
+    deadlines = @filing_year.open_filing_deadlines.map { |tax, date| "#{tax} #{date.month}/#{date.day}まで" }.join("・")
+    div(class: "mb-6") do
+      a(href: tax_summary_fiscal_year_path(@filing_year), class: "block") do
+        div(class: "rounded-lg border border-amber-200 bg-amber-50 p-4 flex items-center justify-between hover:bg-amber-100 transition-colors") do
+          div do
+            p(class: "text-sm font-medium text-amber-800") { "#{@filing_year.year}年分の確定申告 (Tax filing)" }
+            p(class: "text-xs text-amber-600 mt-0.5") { "期限: #{deadlines}" }
+          end
+          span(class: "text-sm font-medium text-amber-700 whitespace-nowrap") { "税額計算 →" }
+        end
+      end
+    end
+  end
+
+  def start_year_banner
+    return unless @start_current_year
+
+    year = FiscalYear.current_year
+    div(class: "mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 flex items-center justify-between") do
+      div do
+        p(class: "text-sm font-medium text-emerald-800") { "#{year}年の記録がまだありません" }
+        p(class: "text-xs text-emerald-600 mt-0.5") { "申告種別（#{@fiscal_year.filing_type_label}）を引き継いで作成します。" }
+      end
+      button_to "#{year}年の帳簿を始める", fiscal_years_path,
+        params: { fiscal_year: { year: year, filing_type: @fiscal_year.filing_type } },
+        class: "inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 cursor-pointer"
+    end
+  end
 
   def reserve_banner
     return unless @fiscal_year.total_revenue.positive? || @fiscal_year.salary_income.present?

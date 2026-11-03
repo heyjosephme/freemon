@@ -8,15 +8,22 @@ class FiscalYearsController < ApplicationController
     render Views::FiscalYears::Index.new(fiscal_years: @fiscal_years)
   end
 
+  def current
+    fiscal_year = FiscalYear.home
+    redirect_to fiscal_year ? fiscal_year_path(fiscal_year) : new_fiscal_year_path
+  end
+
   def show
     render Views::FiscalYears::Show.new(
       fiscal_year: @fiscal_year,
-      reserve: TaxReserveEstimator.new(@fiscal_year).calculate
+      reserve: TaxReserveEstimator.new(@fiscal_year).calculate,
+      filing_year: open_filing_year,
+      start_current_year: start_current_year?
     )
   end
 
   def new
-    @fiscal_year = FiscalYear.new(year: Date.current.year - 1)
+    @fiscal_year = FiscalYear.new(year: FiscalYear.suggested_new_year, filing_type: FiscalYear.latest&.filing_type || :blue_65)
     render Views::FiscalYears::New.new(fiscal_year: @fiscal_year)
   end
 
@@ -101,6 +108,20 @@ class FiscalYearsController < ApplicationController
   end
 
   private
+
+  # Last year's return while its 確定申告 is open (January–March), for its own
+  # dashboard and this year's.
+  def open_filing_year
+    filing_year = FiscalYear.find_by(year: FiscalYear.current_year - 1)
+    return unless filing_year&.open_filing_deadlines&.any?
+
+    filing_year if @fiscal_year.year.in?([ filing_year.year, filing_year.year + 1 ])
+  end
+
+  # Until this year has a record, the dashboard the home page lands on offers to create it.
+  def start_current_year?
+    !FiscalYear.exists?(year: FiscalYear.current_year) && @fiscal_year == FiscalYear.home
+  end
 
   def set_fiscal_year
     @fiscal_year = FiscalYear.find(params[:id])

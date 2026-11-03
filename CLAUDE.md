@@ -10,7 +10,7 @@ bin/dev                # Start dev server (Rails + Tailwind watcher via foreman)
 bin/rails test         # Run unit/integration tests (test:prepare builds Tailwind first)
 bin/rails test test/services/income_tax_calculator_test.rb      # Run a single test file
 bin/rails test test/services/income_tax_calculator_test.rb:14   # Run a single test by line number
-bin/rails test:system  # Run system tests (current ones use rack_test, no browser needed)
+bin/rails test:system  # Run system tests (needs Chrome for the one JavaScript test)
 bin/rubocop            # Lint (rubocop-rails-omakase style)
 bin/rubocop -a         # Lint with auto-correct
 bin/ci                 # Full local CI: setup, rubocop, bundler-audit, importmap audit, brakeman, tests, system tests, seed test
@@ -56,6 +56,8 @@ Development and test use a single SQLite file and Rails' simple adapters instead
 
 Everything except the chart of accounts is scoped to a `FiscalYear` (one per calendar year; `filing_type` is 青色65 / 青色10 / 白色) and nested under `fiscal_years` in the routes. Reports and analysis pages are member routes on it.
 
+`/` redirects to `FiscalYear.home` (this year, else the most recent earlier year, else the latest), and the navbar switches years. The app runs on Tokyo time (`config.time_zone`), so "this year" turns over at midnight JST. From January to March, this year's and last year's dashboards link to last year's open 確定申告 (`FiscalYear#open_filing_deadlines`).
+
 **Core models:** `FiscalYear` → `SalaryIncome`, `Revenue`, `Expense`, `Deduction` (tax data), `JournalEntry` → `JournalEntryLine` (bookkeeping), `Account` (chart of accounts). Uploaded documents: `Revenue has_many_attached :invoices`, `Expense has_many_attached :receipts`. Assigning to a `has_many_attached` replaces the whole collection, so edit forms resubmit every kept file's `signed_id` through `Components::AttachedFiles` (checked checkboxes; unchecking one deletes that file).
 
 **Two expense figures — don't mix them up:** `Expense#amount` is the full tax-included amount paid; `#deductible_amount` applies 家事按分 (`business_ratio`). Tax calculations use the 按分後 figure (`FiscalYear#total_expenses`); `CashflowReport` uses the full amount (実額); journal entries debit the deductible part to the expense account and the personal part to 事業主貸 (190).
@@ -83,7 +85,8 @@ Everything except the chart of accounts is scoped to a `FiscalYear` (one per cal
 - **Minitest**, parallelized with `number_of_processors` (Rails only forks workers once there are ≥50 tests)
 - **No fixture files exist** (`fixtures :all` is configured but loads nothing). Tests create records inline in `setup`, by convention `FiscalYear.create!(year: 2099, ...)`. Service tests assert exact yen amounts with the arithmetic in comments.
 - Tests never load seeds, so whether `JournalEntrySync` runs depends on leftover DB state. A fresh test DB (GitHub Actions, parallel workers) has no `Account` rows and the `Account.any?` guard skips sync, but `bin/ci`'s seed step leaves the seeded accounts in `storage/test.sqlite3`, so later local runs do sync. Tests touching journal entries or the P&L/B/S should create their accounts with `find_or_create_by!(code:)`; that layer has no coverage today.
-- **System tests** (`test/system/`) inherit `ApplicationSystemTestCase` (Selenium + headless Chrome by default). Tests that don't need JavaScript opt into `driven_by :rack_test`, which submits forms exactly as rendered without a browser; `attachments_test.rb` does this. Upload fixtures live in `test/fixtures/files/`.
+- **System tests** (`test/system/`) inherit `ApplicationSystemTestCase` (Selenium + headless Chrome by default). Tests that don't need JavaScript opt into `driven_by :rack_test`, which submits forms exactly as rendered without a browser; `attachments_test.rb` does this. `year_switcher_test.rb` is the one real-browser test. Upload fixtures live in `test/fixtures/files/`.
+- Date-dependent behavior is tested with `travel_to` (see `test/integration/current_year_test.rb`).
 
 ### Deployment
 

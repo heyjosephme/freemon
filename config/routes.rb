@@ -1,5 +1,5 @@
 Rails.application.routes.draw do
-  root "fiscal_years#index"
+  root "fiscal_years#current"
 
   resources :fiscal_years do
     resource :salary_income, only: [ :show, :new, :create, :edit, :update, :destroy ]
