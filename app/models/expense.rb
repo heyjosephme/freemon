@@ -2,7 +2,8 @@
 
 class Expense < ApplicationRecord
   belongs_to :fiscal_year
-  has_one :journal_entry, as: :source, dependent: :destroy
+  # One entry, or for assets spread over years, one when bought plus one per year.
+  has_many :journal_entries, as: :source, dependent: :destroy
   has_many_attached :receipts
 
   after_save :sync_journal_entry
@@ -141,6 +142,9 @@ class Expense < ApplicationRecord
 
   # What's left on the books at the end of the year (未償却残高).
   def book_value_after(year) = amount - write_off_schedule.select { |y, _| y <= year }.values.sum
+
+  # Months of straight-line depreciation in the year: from the month bought, then 12 a year.
+  def months_in_service(year) = year == date.year ? 13 - date.month : 12
 
   private
 

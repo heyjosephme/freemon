@@ -15,6 +15,8 @@ class FiscalYear < ApplicationRecord
   validates :year, presence: true, uniqueness: true, numericality: { in: 2020..2099, only_integer: true }
   validates :filing_type, presence: true
 
+  after_create :post_depreciation_of_earlier_assets
+
   # A 個人事業主's accounting period is the calendar year.
   def self.current_year = Date.current.year
 
@@ -75,7 +77,22 @@ class FiscalYear < ApplicationRecord
     Expense.depreciable.where(date: ..Date.new(year, 12, 31)).order(:date, :id).select { |asset| asset.write_off_schedule.key?(year) }
   end
 
+  # The rows of this year's 減価償却費の計算: lump-sum and depreciated assets with a share this
+  # year, plus this year's 少額減価償却資産の特例 purchases.
+  def depreciation_table_assets
+    (depreciable_assets + expenses.small_asset_special.to_a).sort_by { |asset| [ asset.date, asset.id ] }
+  end
+
   def total_deductions_amount
     deductions.sum(:amount)
+  end
+
+  private
+
+  # A year created after assets were bought picks up its share of their depreciation.
+  def post_depreciation_of_earlier_assets
+    return unless Account.any?
+
+    Expense.depreciable.where(date: ...Date.new(year, 1, 1)).find_each { |asset| JournalEntrySync.sync(asset) }
   end
 end

@@ -63,13 +63,28 @@ Everything except the chart of accounts is scoped to a `FiscalYear` (one per cal
 
 The year dashboard (`Views::FiscalYears::Show`) is ordered by how often each part is used: 経費 (daily, with a quick-add row) beside 事業収入 (monthly), then the once-a-year 給与所得 and 所得控除, then reports and analysis. Expense and revenue forms opened from it carry `return_to=dashboard` (whitelisted in the `ReturnsToDashboard` controller concern), so saving or cancelling goes back to the dashboard instead of the list. New entries default to today in the current year (`FiscalYear#default_entry_date`).
 
-**Core models:** `FiscalYear` → `SalaryIncome`, `Revenue`, `Expense`, `Deduction` (tax data), `JournalEntry` → `JournalEntryLine` (bookkeeping), `Account` (chart of accounts). Uploaded documents: `Revenue has_many_attached :invoices`, `Expense has_many_attached :receipts`. Assigning to a `has_many_attached` replaces the whole collection, so edit forms resubmit every kept file's `signed_id` through `Components::AttachedFiles` (checked checkboxes; unchecking one deletes that file). `Expense#invoice_eligible` has three values: true, false, or nil when the user doesn't track it (fine under 簡易課税 and 2割特例). It defaults to nil, so nothing is credited by accident. `Expense#purchase_channel` is `in_person` (default) or `online`; online purchases get e-receipts by email, so `receipt_missing?` only flags in-person expenses without an attached receipt. Only true earns 本則課税's input tax credit. `invoice_eligible?` is false for nil too, so compare with `== false` where "no invoice" and "unset" must differ (the expense list only flags the former).
+**Core models:** `FiscalYear` → `SalaryIncome`, `Revenue`, `Expense`, `Deduction` (tax data), `JournalEntry` → `JournalEntryLine` (bookkeeping), `Account` (chart of accounts). Uploaded documents: `Revenue has_many_attached :invoices`, `Expense has_many_attached :receipts`. Assigning to a `has_many_attached` replaces the whole collection, so edit forms resubmit every kept file's `signed_id` through `Components::AttachedFiles` (checked checkboxes; unchecking one deletes that file). `Expense#invoice_eligible` has three values: true, false, or nil when the user doesn't track it (fine under 簡易課税 and 2割特例). It defaults to nil, so nothing is credited by accident. Only true earns 本則課税's input tax credit. `invoice_eligible?` is false for nil too, so compare with `== false` where "no invoice" and "unset" must differ (the expense list only flags the former). `Expense#purchase_channel` is `in_person` (default) or `online`; online purchases get e-receipts by email, so `receipt_missing?` only flags in-person expenses without an attached receipt.
 
 **Two expense figures — don't mix them up:** `Expense#amount` is the full tax-included amount paid; `#deductible_amount` applies 家事按分 (`business_ratio`). Tax calculations use the 按分後 figure (`FiscalYear#total_expenses`); `CashflowReport` uses the full amount (実額); journal entries debit the deductible part to the expense account and the personal part to 事業主貸 (190).
 
-**Double-entry bookkeeping (複式簿記):** Revenue/Expense `after_save` callbacks generate journal entries via `JournalEntrySync`, which posts to hard-coded account codes (`102` 普通預金, `103` 売掛金, `190` 事業主貸, `401` 売上高, plus `CATEGORY_ACCOUNT_MAP`). Those accounts are created by `db/seeds.rb`, and sync is skipped entirely while no accounts exist (`if Account.any?`). Manual journal entries also supported. Accounting method: 税込経理方式 (tax-inclusive).
+**Assets (設備・資産):** an expense's `kind` is `ordinary` (経費) or `asset`. An asset's `accounting_method` is `immediate_expense` (under ¥100,000), `small_asset_special` (¥100,000 to under ¥400,000, 青色申告 only, ¥3,000,000 a year), `lump_sum_3_year` (¥100,000 to under ¥200,000) or `normal_depreciation` (定額法 over `useful_life`, prorated by month, down to ¥1). A blank method is suggested from the amount and filing type, and the thresholds are `Expense` constants. `Expense#write_off_schedule` (year → amount before 家事按分) is the single source for all three consumers:
+- the tax side: `FiscalYear#total_expenses` counts this year's share of assets from earlier years too, via `depreciable_assets`;
+- the journal entries;
+- the 減価償却費の計算 report (`/fiscal_years/:id/depreciation`).
+
+**Double-entry bookkeeping (複式簿記):** Revenue/Expense `after_save` callbacks rebuild their journal entries via `JournalEntrySync`, which posts to hard-coded account codes:
+- `102` 普通預金, `103` 売掛金, `190` 事業主貸, `401` 売上高, plus `CATEGORY_ACCOUNT_MAP`;
+- for assets: `150` 工具器具備品, `151` 一括償却資産, `152` ソフトウェア, `511` 減価償却費.
+
+How assets post:
+- 少額特例 goes straight to 減価償却費.
+- Lump-sum and depreciated assets get a purchase entry to their asset account, then a year-end 減価償却費 entry (private share to 事業主貸) in every `FiscalYear` that exists. A year created later posts its share (`FiscalYear` after_create). So `Expense has_many :journal_entries`; `Revenue` still has one.
+
+The accounts come from `db/seeds.rb`, plus a migration that added the asset ones to existing databases. Sync is skipped entirely while no accounts exist (`if Account.any?`). Manual journal entries are also supported. Accounting method: 税込経理方式 (tax-inclusive).
 
 **Financial reports** (computed from journal entries): 仕訳帳 (Journal), 総勘定元帳 (General Ledger), 損益計算書 (P&L), 貸借対照表 (Balance Sheet). The P&L and B/S aggregation lives in the view classes (`Views::FiscalYears::IncomeStatement`, `BalanceSheet`), not in services.
+
+The B/S carries asset, liability and equity balances over from earlier years; 事業主貸/事業主借 count this year only, and 元入金 is computed from earlier years (there's no account for it). There are no opening balances or receivable collections yet, so 普通預金 can go negative and 売掛金 only grows.
 
 **Tax services** (`app/services/`) read Revenue/Expense/Deduction directly; journal entries are a parallel bookkeeping layer.
 - `IncomeTaxCalculator` — the root calculation; returns a Hash. The `extra_income_deductions:` / `extra_business_expenses:` kwargs model hypothetical contributions.
@@ -81,7 +96,7 @@ The year dashboard (`Views::FiscalYears::Show`) is ordered by how often each par
 
 **Bulk import:** `RevenueImport` and `ExpenseImport` (behind `bin/rails revenues:import` / `expenses:import`, both in `lib/tasks/import.rake`) read hand-made CSVs in UTF-8 or Shift_JIS; examples are in `test/fixtures/files/`. They share `CsvImport`, which checks every row before saving anything, saves all-or-nothing, files each row under the fiscal year of its date, and skips rows identical to an existing record (each subclass's `IDENTITY`), so re-running a file is safe. Subclasses declare `MODEL`, `IDENTITY` and `COLUMNS` (header aliases, required or optional) and implement `#attributes_for`.
 
-**Tax rules are not year-aware:** brackets, deductions and rates are constants in each class (e.g. `IncomeTaxCalculator::BASIC_DEDUCTION`, `SalaryIncome::DEDUCTION_BRACKETS`) and apply to every fiscal year. 基礎控除 is also hard-coded as `480_000` in `Views::Deductions::Index`.
+**Tax rules are not year-aware:** brackets, deductions, rates and the asset thresholds are constants in each class (e.g. `IncomeTaxCalculator::BASIC_DEDUCTION`, `SalaryIncome::DEDUCTION_BRACKETS`, `Expense::SMALL_ASSET_LIMIT`) and apply to every fiscal year. 基礎控除 is also hard-coded as `480_000` in `Views::Deductions::Index`.
 
 **Money:** All amounts are integer yen (columns and return values). Tax extraction: `amount * 10 / 110` (multiply first). Taxable income rounded down to nearest ¥1,000. The older calculators multiply by float rates and truncate with `.to_i`; the newer estimators use integer percent / basis points so results are exact — prefer that for new code. Display percentages are floats rounded to 1 dp.
 

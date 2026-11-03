@@ -68,7 +68,9 @@ class Views::Expenses::Index < Views::Base
             carried = @fiscal_year.total_expenses - @expenses.sum(&:deduction_this_year)
             if carried.positive?
               tr do
-                td(class: "#{td_classes} text-gray-500", colspan: 5) { "前年以前に取得した資産の減価償却" }
+                td(class: "#{td_classes} text-gray-500", colspan: 5) do
+                  a(href: depreciation_fiscal_year_path(@fiscal_year), class: "hover:text-indigo-600") { "前年以前に取得した資産の減価償却" }
+                end
                 td(class: "#{td_classes} text-right") { yen(carried) }
                 td { "" }
               end

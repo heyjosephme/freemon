@@ -6,6 +6,9 @@ default_accounts = [
   { code: "101", name: "現金", name_en: "Cash", account_type: :asset },
   { code: "102", name: "普通預金", name_en: "Bank Savings", account_type: :asset },
   { code: "103", name: "売掛金", name_en: "Accounts Receivable", account_type: :asset },
+  { code: "150", name: "工具器具備品", name_en: "Tools & Equipment", account_type: :asset },
+  { code: "151", name: "一括償却資産", name_en: "Lump-sum Depreciable Assets", account_type: :asset },
+  { code: "152", name: "ソフトウェア", name_en: "Software", account_type: :asset },
   { code: "190", name: "事業主貸", name_en: "Owner Drawings", account_type: :asset },
 
   # 負債 (Liabilities)
@@ -26,7 +29,8 @@ default_accounts = [
   { code: "507", name: "新聞図書費", name_en: "Books/Subscriptions", account_type: :expense },
   { code: "508", name: "支払手数料", name_en: "Fees/Commission", account_type: :expense },
   { code: "509", name: "外注費", name_en: "Outsourcing", account_type: :expense },
-  { code: "510", name: "雑費", name_en: "Miscellaneous", account_type: :expense }
+  { code: "510", name: "雑費", name_en: "Miscellaneous", account_type: :expense },
+  { code: "511", name: "減価償却費", name_en: "Depreciation", account_type: :expense }
 ]
 
 default_accounts.each do |attrs|
@@ -49,7 +53,7 @@ if Rails.env.development? && FiscalYear.none?
   fy.revenues.create!(client_name: "合同会社デザインラボ", amount: 220_000, date: Date.new(2025, 9, 15))
   fy.revenues.create!(client_name: "株式会社テックコープ", amount: 550_000, date: Date.new(2025, 10, 31))
 
-  fy.expenses.create!(description: "MacBook Pro", amount: 298_000, category: :equipment, business_ratio: 80, invoice_eligible: true, purchase_channel: :online, date: Date.new(2025, 7, 1))
+  fy.expenses.create!(description: "MacBook Pro", amount: 298_000, category: :equipment, kind: :asset, business_ratio: 80, invoice_eligible: true, purchase_channel: :online, date: Date.new(2025, 7, 1))
   fy.expenses.create!(description: "コワーキングスペース月額 (7-12月)", amount: 180_000, category: :office, business_ratio: 100, invoice_eligible: true, purchase_channel: :online, date: Date.new(2025, 12, 31))
   fy.expenses.create!(description: "インターネット回線 (年額)", amount: 72_000, category: :communication, business_ratio: 50, invoice_eligible: true, purchase_channel: :online, date: Date.new(2025, 12, 31))
   fy.expenses.create!(description: "Adobe Creative Cloud", amount: 86_880, category: :software, business_ratio: 100, invoice_eligible: true, purchase_channel: :online, date: Date.new(2025, 12, 31))

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_03_140853) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_03_141912) do
   create_table "accounts", force: :cascade do |t|
     t.string "code", null: false
     t.string "name", null: false
@@ -94,7 +94,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_140853) do
     t.datetime "updated_at", null: false
     t.index ["fiscal_year_id", "date"], name: "index_journal_entries_on_fiscal_year_id_and_date"
     t.index ["fiscal_year_id"], name: "index_journal_entries_on_fiscal_year_id"
-    t.index ["source_type", "source_id"], name: "index_journal_entries_on_source_type_and_source_id", unique: true, where: "source_type IS NOT NULL"
+    t.index ["source_type", "source_id"], name: "index_journal_entries_on_source_type_and_source_id"
   end
 
   create_table "journal_entry_lines", force: :cascade do |t|

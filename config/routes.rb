@@ -14,6 +14,7 @@ Rails.application.routes.draw do
       get :general_ledger
       get :income_statement
       get :balance_sheet
+      get :depreciation
 
       # Analysis & planning
       get :cashflow

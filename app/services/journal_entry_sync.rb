@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# Posts the journal entries for a revenue or an expense, replacing any it had.
+# Assets spread over several years get one entry when bought and one 減価償却
+# entry at the end of each year, in every fiscal year that exists so far
+# (FiscalYear adds its own when it's created later).
 class JournalEntrySync
   # Maps Expense categories to Account codes
   CATEGORY_ACCOUNT_MAP = {
@@ -12,12 +16,21 @@ class JournalEntrySync
     "other" => "510"            # 雑費
   }.freeze
 
+  BANK = "102"            # 普通預金
+  RECEIVABLE = "103"      # 売掛金
+  EQUIPMENT = "150"       # 工具器具備品
+  LUMP_SUM = "151"        # 一括償却資産
+  SOFTWARE = "152"        # ソフトウェア
+  OWNER_DRAWINGS = "190"  # 事業主貸
+  SALES = "401"           # 売上高
+  DEPRECIATION = "511"    # 減価償却費
+
   def self.sync(source)
     new(source).sync
   end
 
   def self.destroy(source)
-    JournalEntry.find_by(source: source)&.destroy
+    JournalEntry.where(source: source).destroy_all
   end
 
   def initialize(source)
@@ -25,62 +38,66 @@ class JournalEntrySync
   end
 
   def sync
-    entry = JournalEntry.find_or_initialize_by(source: @source)
-    entry.fiscal_year = @source.fiscal_year
-    entry.date = @source.date
-    entry.description = build_description
-
-    entry.lines.destroy_all if entry.persisted?
-
-    build_lines(entry)
-    entry.save!
-    entry
+    self.class.destroy(@source)
+    case @source
+    when Revenue then sync_revenue
+    when Expense then sync_expense
+    end
   end
 
   private
 
-  def build_description
-    case @source
-    when Revenue
-      "売上: #{@source.client_name}"
-    when Expense
-      "経費: #{@source.description}"
+  def sync_revenue
+    amount = @source.amount
+    post(@source.fiscal_year, @source.date, "売上: #{@source.client_name}",
+         debit: { RECEIVABLE => amount }, credit: { SALES => amount })
+  end
+
+  def sync_expense
+    if @source.depreciable?
+      sync_depreciable_asset
+    elsif @source.small_asset_special?
+      paid_in_full(DEPRECIATION, "少額減価償却資産")
+    else
+      paid_in_full(CATEGORY_ACCOUNT_MAP[@source.category], "経費")
     end
   end
 
-  def build_lines(entry)
-    case @source
-    when Revenue
-      build_revenue_lines(entry)
-    when Expense
-      build_expense_lines(entry)
-    end
-  end
-
-  def build_revenue_lines(entry)
-    amount = @source.amount
-
-    # 借方: 売掛金  / 貸方: 売上高
-    entry.lines.build(account: find_account("103"), side: :debit, amount: amount)
-    entry.lines.build(account: find_account("401"), side: :credit, amount: amount)
-  end
-
-  def build_expense_lines(entry)
-    amount = @source.amount
+  # Expensed when paid: the business share to the expense account, the private share to 事業主貸.
+  def paid_in_full(account, label)
     deductible = @source.deductible_amount
-    personal = amount - deductible
-    expense_account_code = CATEGORY_ACCOUNT_MAP[@source.category]
+    post(@source.fiscal_year, @source.date, "#{label}: #{@source.description}",
+         debit: { account => deductible, OWNER_DRAWINGS => @source.amount - deductible }, credit: { BANK => @source.amount })
+  end
 
-    # 借方: 経費勘定
-    entry.lines.build(account: find_account(expense_account_code), side: :debit, amount: deductible)
+  def sync_depreciable_asset
+    account = asset_account
+    post(@source.fiscal_year, @source.date, "資産の取得: #{@source.description}",
+         debit: { account => @source.amount }, credit: { BANK => @source.amount })
 
-    # 借方: 事業主貸 (personal portion, if any)
-    if personal > 0
-      entry.lines.build(account: find_account("190"), side: :debit, amount: personal)
+    @source.write_off_schedule.each do |year, charge|
+      fiscal_year = FiscalYear.find_by(year: year) or next
+      business = charge * @source.business_ratio / 100
+      post(fiscal_year, Date.new(year, 12, 31), "減価償却: #{@source.description}",
+           debit: { DEPRECIATION => business, OWNER_DRAWINGS => charge - business }, credit: { account => charge })
     end
+  end
 
-    # 貸方: 普通預金
-    entry.lines.build(account: find_account("102"), side: :credit, amount: amount)
+  def asset_account
+    return LUMP_SUM if @source.lump_sum_3_year?
+
+    @source.software? ? SOFTWARE : EQUIPMENT
+  end
+
+  # Zero amounts (e.g. no private share) get no line.
+  def post(fiscal_year, date, description, debit:, credit:)
+    entry = JournalEntry.new(source: @source, fiscal_year: fiscal_year, date: date, description: description)
+    { debit: debit, credit: credit }.each do |side, amounts|
+      amounts.each do |code, amount|
+        entry.lines.build(account: find_account(code), side: side, amount: amount) if amount.positive?
+      end
+    end
+    entry.save!
   end
 
   def find_account(code)
