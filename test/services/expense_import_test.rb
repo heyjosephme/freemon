@@ -17,8 +17,27 @@ class ExpenseImportTest < ActiveSupport::TestCase
 
     assert_not import.errors?
     assert_equal({ date: Date.new(2030, 7, 1), description: "MacBook Pro", amount: 298_000, category: "equipment",
-                   business_ratio: 80, invoice_eligible: true, purchase_channel: "online" },
+                   business_ratio: 80, invoice_eligible: true, purchase_channel: "online",
+                   kind: "ordinary", accounting_method: nil, useful_life: nil },
                  import.rows.first.attributes)
+  end
+
+  test "区分, 償却方法 and 耐用年数 make an asset; a blank 償却方法 is picked from the amount" do
+    import = ExpenseImport.new(<<~CSV)
+      日付,内容,金額,区分,償却方法,耐用年数
+      2030-07-15,MacBook Pro,500000,資産,定額,４年
+      2030-07-20,モニター,150000,資産,,
+      2030-08-01,ディスプレイアーム,150000,,一括,
+    CSV
+
+    assert_not import.errors?, import.rows.map(&:message).inspect
+    assert_equal [ [ "asset", "normal_depreciation", 4 ], [ "asset", "small_asset_special", nil ], [ "asset", "lump_sum_3_year", nil ] ],
+                 import.rows.map { |row| row.attributes.values_at(:kind, :accounting_method, :useful_life) }
+  end
+
+  test "asset rules come back as plain Japanese messages" do
+    import = ExpenseImport.new("日付,内容,金額,区分,償却方法\n2030-07-15,サーバー,600000,資産,定額\n")
+    assert_equal "耐用年数を2〜50年で入力してください（例: パソコン 4年）", import.rows.first.message
   end
 
   test "購入方法 takes オンライン or 店頭, and defaults to 店頭・対面" do

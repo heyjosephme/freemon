@@ -26,6 +26,8 @@ class Views::Expenses::Form < Views::Base
           end
         end
 
+        asset_fields(f)
+
         field(f, :business_ratio, "家事按分率 (Business Use %)", type: :number_field, min: 1, max: 100,
           hint: "事業で使用している割合 (1-100%)")
 
@@ -62,6 +64,31 @@ class Views::Expenses::Form < Views::Base
   end
 
   private
+
+  # 区分, plus the 設備・資産 fields, which only show while 区分 is 設備・資産.
+  def asset_fields(f)
+    div(class: "mb-4", data: { controller: "asset-fields" }) do
+      f.label :kind, "区分 (Type)", class: "block text-sm font-medium text-gray-700 mb-1"
+      f.select :kind, Expense::KIND_LABELS.map { |key, label| [ label, key ] }, {},
+        class: input_classes, data: { asset_fields_target: "kind", action: "asset-fields#toggle" }
+      p(class: "mt-1 text-sm text-gray-500") { "10万円以上のパソコン・カメラ・家具などは「設備・資産」にすると、償却方法に沿って計上されます。" }
+
+      fieldset(class: "mt-3 rounded-md border border-gray-200 p-4", data: { asset_fields_target: "fields" }) do
+        legend(class: "px-1 text-sm font-medium text-gray-700") { "設備・資産の場合" }
+        div(class: "mb-4") do
+          f.label :accounting_method, "償却方法 (Accounting method)", class: "block text-sm font-medium text-gray-700 mb-1"
+          f.select :accounting_method, [ [ "自動（金額から判定）", "" ], *Expense::ACCOUNTING_METHOD_LABELS.map { |key, label| [ label, key ] } ], {},
+            class: input_classes
+          p(class: "mt-1 text-sm text-gray-500") { "自動: 10万円未満は全額経費、40万円未満は少額減価償却資産の特例（青色申告）、それ以上は定額法。" }
+          @expense.errors[:accounting_method].each do |error|
+            p(class: "mt-1 text-sm text-red-600") { error }
+          end
+        end
+        field(f, :useful_life, "耐用年数 (Useful life, years)", type: :number_field, min: 2, max: 50,
+          hint: "定額法のときだけ。例: パソコン 4年、サーバー・カメラ・ソフトウェア 5年、普通自動車 6年")
+      end
+    end
+  end
 
   def field(f, attr, label, type:, hint: nil, **opts)
     div(class: "mb-4") do

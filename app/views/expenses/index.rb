@@ -31,8 +31,10 @@ class Views::Expenses::Index < Views::Base
                 td(class: td_classes) { expense.date.to_s }
                 td(class: td_classes) do
                   plain expense.description
-                  if expense.high_value?
-                    span(class: "ml-2 text-xs text-yellow-600") { "(高額)" }
+                  if expense.asset?
+                    span(class: "ml-2 text-xs text-indigo-600") { "(#{expense.asset_summary})" }
+                  elsif expense.high_value?
+                    span(class: "ml-2 text-xs text-yellow-600") { "(10万円以上: 資産？)" }
                   end
                   if expense.invoice_eligible == false # unset (nil) isn't flagged
                     span(class: "ml-2 text-xs text-red-500") { "(非インボイス)" }
@@ -46,9 +48,9 @@ class Views::Expenses::Index < Views::Base
                 td(class: td_classes) do
                   render Badge.new(text: expense.category_label, color: :gray)
                 end
-                td(class: "#{td_classes} text-right") { helpers.number_to_currency(expense.amount, unit: "¥", precision: 0) }
+                td(class: "#{td_classes} text-right") { yen(expense.amount) }
                 td(class: "#{td_classes} text-right") { "#{expense.business_ratio}%" }
-                td(class: "#{td_classes} text-right") { helpers.number_to_currency(expense.deductible_amount, unit: "¥", precision: 0) }
+                td(class: "#{td_classes} text-right") { yen(expense.deduction_this_year) }
                 td(class: "#{td_classes} text-right") do
                   div(class: "flex gap-3 justify-end") do
                     a(href: edit_fiscal_year_expense_path(@fiscal_year, expense), class: "text-indigo-600 hover:text-indigo-800 text-sm") { "編集" }
@@ -62,11 +64,20 @@ class Views::Expenses::Index < Views::Base
             end
           end
           tfoot do
+            # Assets bought in earlier years still depreciate this year but aren't rows here.
+            carried = @fiscal_year.total_expenses - @expenses.sum(&:deduction_this_year)
+            if carried.positive?
+              tr do
+                td(class: "#{td_classes} text-gray-500", colspan: 5) { "前年以前に取得した資産の減価償却" }
+                td(class: "#{td_classes} text-right") { yen(carried) }
+                td { "" }
+              end
+            end
             tr(class: "bg-gray-50") do
               td(class: "#{td_classes} font-medium", colspan: 3) { "合計" }
-              td(class: "#{td_classes} text-right font-bold") { helpers.number_to_currency(@expenses.sum(:amount), unit: "¥", precision: 0) }
+              td(class: "#{td_classes} text-right font-bold") { yen(@expenses.sum(:amount)) }
               td { "" }
-              td(class: "#{td_classes} text-right font-bold") { helpers.number_to_currency(@fiscal_year.total_expenses, unit: "¥", precision: 0) }
+              td(class: "#{td_classes} text-right font-bold") { yen(@fiscal_year.total_expenses) }
               td { "" }
             end
           end
@@ -82,6 +93,8 @@ class Views::Expenses::Index < Views::Base
   end
 
   private
+
+  def yen(amount) = "¥#{ActiveSupport::NumberHelper.number_to_delimited(amount)}"
 
   def th_classes
     "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"

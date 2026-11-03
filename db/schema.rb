@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_03_045130) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_03_140853) do
   create_table "accounts", force: :cascade do |t|
     t.string "code", null: false
     t.string "name", null: false
@@ -70,6 +70,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_045130) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "purchase_channel", default: 0, null: false
+    t.integer "kind", default: 0, null: false
+    t.integer "accounting_method"
+    t.integer "useful_life"
     t.index ["fiscal_year_id"], name: "index_expenses_on_fiscal_year_id"
   end
 

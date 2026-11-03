@@ -52,7 +52,12 @@ class CsvImport
     raise Invalid, "エラーがあるため保存できません" if errors?
 
     ActiveRecord::Base.transaction do
-      new_rows.each { |row| row.fiscal_year.public_send(association).create!(row.attributes) }
+      new_rows.each do |row|
+        row.fiscal_year.public_send(association).create!(row.attributes)
+      rescue ActiveRecord::RecordInvalid => e
+        # Rows checked one by one can still clash together, e.g. over the 特例's yearly cap.
+        raise Invalid, "#{row.line}行目: #{model_error_messages(e.record).join("、")}"
+      end
     end
     new_rows.size
   end
@@ -105,7 +110,15 @@ class CsvImport
     date = attributes[:date]
     fiscal_year = fiscal_years[date.year] if date
     errors << "#{date.year}年の年度がありません（先に作成してください）" if date && !fiscal_year
-    errors.concat(model_errors(fiscal_year, attributes)) if errors.empty?
+    if errors.empty?
+      record = self.class::MODEL.new(attributes.merge(fiscal_year: fiscal_year))
+      if record.valid?
+        # Keep what the model settled on (e.g. a suggested accounting method), so the preview shows what gets saved.
+        attributes = attributes.to_h { |key, _value| [ key, record.public_send(key) ] }
+      else
+        errors.concat(model_error_messages(record))
+      end
+    end
 
     status = if errors.any?
       :error
@@ -118,9 +131,9 @@ class CsvImport
   end
 
   # Backstop for model validations the parser doesn't know about.
-  def model_errors(fiscal_year, attributes)
-    record = self.class::MODEL.new(attributes.merge(fiscal_year: fiscal_year))
-    record.valid? ? [] : record.errors.full_messages
+  # Messages the model writes as whole sentences read better without the attribute name.
+  def model_error_messages(record)
+    record.errors.map { |error| error.type.is_a?(String) ? error.message : error.full_message }
   end
 
   def date_value(text, errors)

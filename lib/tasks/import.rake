@@ -33,7 +33,11 @@ run_csv_import = lambda do |import_class, task:, noun:, example:|
   if import.errors?
     abort "エラーがあるため何も保存していません。CSVを直して再実行してください。"
   elsif ENV["COMMIT"] == "1"
-    puts "#{import.save!}件の#{noun}を保存しました。"
+    begin
+      puts "#{import.save!}件の#{noun}を保存しました。"
+    rescue CsvImport::Invalid => e
+      abort "#{e.message}。何も保存していません。"
+    end
   else
     puts "ドライランです（まだ保存していません）。COMMIT=1 を付けて再実行すると保存します。"
   end

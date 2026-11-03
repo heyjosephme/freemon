@@ -19,4 +19,21 @@ class ExpenseListTest < ActionDispatch::IntegrationTest
     assert_match "(要領収書)", cells["コーヒー"]
     assert_no_match "要領収書", cells["文房具"]
   end
+
+  test "assets show their method and this year's share, and later years add it to their total" do
+    bought = FiscalYear.create!(year: 2098)
+    bought.expenses.create!(description: "PC", amount: 500_000, category: :equipment, kind: :asset,
+                            accounting_method: :normal_depreciation, useful_life: 4, date: Date.new(2098, 7, 15))
+    following = FiscalYear.create!(year: 2099)
+    following.expenses.create!(description: "コーヒー", amount: 1_000, category: :other, date: Date.new(2099, 1, 2))
+
+    get fiscal_year_expenses_url(bought)
+    assert_match "(資産・定額法4年)", response.body
+    assert_select "tbody td", text: "¥62,500"
+
+    get fiscal_year_expenses_url(following)
+    assert_select "tfoot td", text: "前年以前に取得した資産の減価償却"
+    assert_select "tfoot td", text: "¥125,000"
+    assert_select "tfoot td", text: "¥126,000"
+  end
 end

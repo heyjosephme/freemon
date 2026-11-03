@@ -42,6 +42,17 @@ class ExpenseFormTest < ApplicationSystemTestCase
     assert @expense.reload.online?
   end
 
+  test "an asset entered through the form gets its method from the amount" do
+    visit new_fiscal_year_expense_path(@fiscal_year)
+    fill_in "内容 (Description)", with: "MacBook Pro"
+    fill_in "金額 税込 (Amount, tax included)", with: "298000"
+    select "設備・資産", from: "区分 (Type)"
+    click_on "登録"
+
+    expense = @fiscal_year.expenses.find_by!(description: "MacBook Pro")
+    assert_equal [ "asset", "small_asset_special" ], [ expense.kind, expense.accounting_method ]
+  end
+
   test "new expenses start unset, so nothing is credited by accident" do
     visit new_fiscal_year_expense_path(@fiscal_year)
     assert_field "インボイス (Invoice)", with: ""

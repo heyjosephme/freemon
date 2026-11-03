@@ -59,8 +59,20 @@ class FiscalYear < ApplicationRecord
     revenues.sum(:amount)
   end
 
+  def blue? = !white?
+
+  # Business expenses deductible this year (家事按分後): what was paid this year, except that
+  # lump-sum and depreciated assets count only this year's share, wherever they were bought.
   def total_expenses
-    expenses.sum("amount * business_ratio / 100")
+    expenses.written_off_when_paid.sum("amount * business_ratio / 100") + depreciation_total
+  end
+
+  # This year's share of lump-sum and depreciated assets (家事按分後), including earlier years' purchases.
+  def depreciation_total = depreciable_assets.sum { |asset| asset.deduction_for(year) }
+
+  # Lump-sum and depreciated assets with a share in this year, bought this year or before.
+  def depreciable_assets
+    Expense.depreciable.where(date: ..Date.new(year, 12, 31)).order(:date, :id).select { |asset| asset.write_off_schedule.key?(year) }
   end
 
   def total_deductions_amount

@@ -21,8 +21,23 @@ class ExpenseImport < CsvImport
     category: { names: [ "カテゴリ", "カテゴリー", "category" ] },
     business_ratio: { names: [ "按分率", "家事按分", "事業割合", "business_ratio" ] },
     invoice_eligible: { names: [ "インボイス", "インボイス対応", "invoice", "invoice_eligible" ] },
-    purchase_channel: { names: [ "購入方法", "購入", "channel", "purchase_channel" ] }
+    purchase_channel: { names: [ "購入方法", "購入", "channel", "purchase_channel" ] },
+    kind: { names: [ "区分", "kind" ] },
+    accounting_method: { names: [ "償却方法", "accounting_method" ] },
+    useful_life: { names: [ "耐用年数", "useful_life" ] }
   }.freeze
+
+  KINDS = {
+    "ordinary" => %w[経費 普通経費 expense ordinary],
+    "asset" => %w[資産 設備 設備・資産 asset]
+  }.flat_map { |key, names| names.map { |name| [ name, key ] } }.to_h.freeze
+
+  ACCOUNTING_METHODS = {
+    "immediate_expense" => %w[全額経費 少額 immediate immediate_expense],
+    "lump_sum_3_year" => %w[一括 一括償却 一括償却資産 lump_sum lump_sum_3_year],
+    "small_asset_special" => %w[特例 少額特例 少額減価償却資産の特例 small_asset_special],
+    "normal_depreciation" => %w[定額 定額法 減価償却 normal normal_depreciation]
+  }.flat_map { |key, names| names.map { |name| [ name, key ] } }.to_h.freeze
 
   # Every name a category answers to: its key, its full label as the form shows
   # it, and each part of that label, so 備品・器具 (Equipment) also matches
@@ -44,7 +59,8 @@ class ExpenseImport < CsvImport
   }.flat_map { |key, names| names.map { |name| [ name, key ] } }.to_h.freeze
 
   def describe(row)
-    details = [ Expense.category_name(row[:category]), "按分#{row[:business_ratio]}%" ]
+    asset = Expense.new(row.attributes.slice(:kind, :accounting_method, :useful_life)).asset_summary
+    details = [ Expense.category_name(row[:category]), asset, "按分#{row[:business_ratio]}%" ]
     details << { true => "インボイスあり", false => "インボイスなし" }[row[:invoice_eligible]]
     details << "オンライン" if row[:purchase_channel] == "online"
     format("%s  %12s  %s（%s）", row[:date], yen(row[:amount]), row[:description], details.compact.join("、"))
@@ -65,8 +81,37 @@ class ExpenseImport < CsvImport
       category: category_value(values[:category], errors),
       business_ratio: ratio_value(values[:business_ratio], errors),
       invoice_eligible: invoice_value(values[:invoice_eligible], errors),
-      purchase_channel: channel_value(values[:purchase_channel], errors)
+      purchase_channel: channel_value(values[:purchase_channel], errors),
+      **asset_values(values, errors)
     }
+  end
+
+  # 区分 defaults to 経費, unless a 償却方法 is given; a blank 償却方法 lets the
+  # model pick one from the amount.
+  def asset_values(values, errors)
+    method = lookup(ACCOUNTING_METHODS, values[:accounting_method], "償却方法は 全額経費・一括・特例・定額 のどれかで入力してください", errors)
+    kind = lookup(KINDS, values[:kind], "区分は 経費 か 資産 で入力してください", errors) || (method ? "asset" : "ordinary")
+    { kind: kind, accounting_method: method, useful_life: useful_life_value(values[:useful_life], errors) }
+  end
+
+  # The key for a cell's value, nil when the cell is blank, or an error.
+  def lookup(table, text, message, errors)
+    name = normalize(text).downcase
+    return if name.empty?
+
+    table.fetch(name) do
+      errors << "#{message}: #{text.inspect}"
+      nil
+    end
+  end
+
+  def useful_life_value(text, errors)
+    years = normalize(text).delete_suffix("年").strip
+    return if years.empty?
+    return years.to_i if years.match?(/\A\d+\z/)
+
+    errors << "耐用年数は年数で入力してください: #{text.inspect}"
+    nil
   end
 
   def channel_value(text, errors)

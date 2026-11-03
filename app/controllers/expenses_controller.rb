@@ -57,6 +57,7 @@ class ExpensesController < ApplicationController
   def back_path = dashboard_or(fiscal_year_expenses_path(@fiscal_year))
 
   def expense_params
-    params.expect(expense: [ :description, :amount, :category, :business_ratio, :invoice_eligible, :purchase_channel, :date, receipts: [] ])
+    params.expect(expense: [ :description, :amount, :category, :kind, :accounting_method, :useful_life, :business_ratio,
+                             :invoice_eligible, :purchase_channel, :date, receipts: [] ])
   end
 end

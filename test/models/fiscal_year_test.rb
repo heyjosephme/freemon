@@ -19,6 +19,17 @@ class FiscalYearTest < ActiveSupport::TestCase
     assert_empty @fiscal_year.open_filing_deadlines(Date.new(2031, 4, 1))
   end
 
+  test "a year's expenses count depreciation of assets bought in earlier years" do
+    later = FiscalYear.create!(year: 2031)
+    @fiscal_year.expenses.create!(description: "コーヒー", amount: 1_000, category: :other, date: Date.new(2030, 3, 1))
+    @fiscal_year.expenses.create!(description: "PC", amount: 500_000, category: :equipment, kind: :asset,
+                                  accounting_method: :normal_depreciation, useful_life: 4, date: Date.new(2030, 7, 15))
+    later.expenses.create!(description: "コーヒー", amount: 2_000, category: :other, date: Date.new(2031, 3, 1))
+
+    assert_equal 1_000 + 62_500, @fiscal_year.total_expenses
+    assert_equal 2_000 + 125_000, later.total_expenses
+  end
+
   test "new entries start today in the current year, else on January 1st" do
     travel_to Date.new(2031, 6, 15) do
       assert_equal Date.new(2031, 6, 15), FiscalYear.new(year: 2031).default_entry_date
