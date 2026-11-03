@@ -14,6 +14,7 @@ bin/rails test:system  # Run system tests (needs Chrome for the one JavaScript t
 bin/rubocop            # Lint (rubocop-rails-omakase style)
 bin/rubocop -a         # Lint with auto-correct
 bin/ci                 # Full local CI: setup, rubocop, bundler-audit, importmap audit, brakeman, tests, system tests, seed test
+bin/rails revenues:import FILE=sales.csv          # Bulk-import revenues from a CSV (dry run; add COMMIT=1 to save)
 ```
 
 `bin/brakeman` is the stock Rails binstub, which prepends `--ensure-latest`: it exits 5 whenever a newer Brakeman has been released, even with zero warnings. Fix with `bundle update brakeman`; `bundle exec brakeman` scans without the version gate. GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on every branch push.
@@ -73,6 +74,8 @@ Everything except the chart of accounts is scoped to a `FiscalYear` (one per cal
 - `TaxReserveEstimator` — sums all four into "how much to set aside"; drives the dashboard banner and the `tax_reserve` page.
 - `TaxSavingSimulator` — re-runs the calculators with hypothetical 小規模企業共済 / iDeCo contributions (所得控除: lowers income and resident tax, not 国保) and 経営セーフティ共済 (必要経費: also lowers 国保).
 - `CashflowReport` — monthly in/out plus by-client and by-category breakdowns, at full amounts (see above).
+
+**Bulk import:** `RevenueImport` (behind `bin/rails revenues:import`) reads a hand-made `日付,取引先,金額` CSV in UTF-8 or Shift_JIS (example: `test/fixtures/files/revenues.csv`). It checks every row before saving anything, saves all-or-nothing, files each row under the fiscal year of its date, and skips rows identical to an existing revenue, so re-running a file is safe.
 
 **Tax rules are not year-aware:** brackets, deductions and rates are constants in each class (e.g. `IncomeTaxCalculator::BASIC_DEDUCTION`, `SalaryIncome::DEDUCTION_BRACKETS`) and apply to every fiscal year. 基礎控除 is also hard-coded as `480_000` in `Views::FiscalYears::Show`.
 

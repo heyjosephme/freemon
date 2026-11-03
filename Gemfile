@@ -68,3 +68,6 @@ group :test do
 end
 
 gem "phlex-rails", "~> 2.4"
+
+# CSV parsing for bulk imports (a bundled gem since Ruby 3.4, so it must be declared)
+gem "csv"
