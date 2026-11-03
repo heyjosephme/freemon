@@ -7,7 +7,7 @@ A personal tax and bookkeeping app for a Japanese freelancer (個人事業主), 
 ## Features
 
 - **確定申告**: income tax combining 給与所得 and 事業所得 (青色申告特別控除, 損益通算, 復興特別所得税), and consumption tax compared across 本則課税 / 簡易課税 / 2割特例.
-- **Bookkeeping**: revenues and expenses (家事按分, インボイス対応, attached invoices and receipts) post journal entries automatically, and manual entries are supported. Reports: 仕訳帳, 総勘定元帳, 損益計算書, 貸借対照表.
+- **Bookkeeping**: revenues and expenses (家事按分, インボイス対応, online or in-person purchase, attached invoices and receipts) post journal entries automatically, and manual entries are supported. In-person expenses still missing a receipt photo are flagged. Reports: 仕訳帳, 総勘定元帳, 損益計算書, 貸借対照表.
 - **Analysis and planning**: monthly cashflow, how much to set aside for 所得税・消費税・住民税・国保, and what 小規模企業共済 / iDeCo / 経営セーフティ共済 contributions would save.
 - **Expense-first dashboard**: opens on this year, with 経費 front and centre (a quick-add row for everyday entries) beside 事業収入, and the once-a-year sections tucked below. From January to March it links to last year's open 確定申告 and its deadlines.
 - **Bulk import** of revenues and expenses from CSV ([below](#importing-revenues-and-expenses-from-csv)).
@@ -18,16 +18,29 @@ A personal tax and bookkeeping app for a Japanese freelancer (個人事業主), 
 - Google Chrome, for the one browser-based system test
 - Optional: libvips (`brew install vips`), used to analyze uploaded image receipts
 
-## Getting started
+## Getting started (development)
 
 ```bash
 bin/setup   # installs gems, creates the database, starts the app
 bin/dev     # afterwards: starts Rails and the Tailwind watcher
 ```
 
-Then open http://localhost:3000. The development database is seeded with the chart of accounts (勘定科目) and a sample 2025 fiscal year.
+Then open http://localhost:3000. The development database (`storage/development.sqlite3`, ignored by git) is seeded with the chart of accounts (勘定科目) and a sample 2025 fiscal year. It's for working on the code and safe to reset; keep your real books in the personal instance below.
 
-All data, the SQLite databases and uploaded files alike, lives in `storage/`, which git ignores. Back it up.
+## Using it for your own books
+
+Your real data runs as a separate, private instance: production mode, data kept outside the repo in `~/Library/Application Support/Freemon`, served over HTTPS at https://freemon.localhost:4443.
+
+```bash
+brew install mkcert && mkcert -install   # once: lets this Mac trust the local certificate (asks for your password)
+bin/freemon setup                        # once: data folder, secret key, certificate, database
+bin/freemon                              # start, then open https://freemon.localhost:4443
+```
+
+- **Other commands** go through `bin/freemon` too, so they reach your data instead of the development database: `bin/freemon expenses:import FILE=expenses.csv`, `bin/freemon console`.
+- **Backups:** `bin/freemon backup [DIR]` snapshots the database and receipts, safely even while the app runs. `bin/freemon restore DIR` puts one back, after first backing up the current state. Keep copies off this Mac (an external disk, say), but don't put the live data folder itself in iCloud or Dropbox, where syncing can corrupt SQLite.
+- **Updates:** after a `git pull`, the next `bin/freemon` applies any migrations.
+- **Safety:** Rails refuses destructive database tasks (`db:reset`, `db:drop`, …) against this instance. There's no login, so it only listens on 127.0.0.1 and only answers to `freemon.localhost`; don't expose it to a network.
 
 ## Importing revenues and expenses from CSV
 
@@ -39,6 +52,8 @@ bin/rails revenues:import FILE=sales.csv COMMIT=1   # saves
 bin/rails expenses:import FILE=expenses.csv         # the same for expenses
 ```
 
+For your real books, run them through `bin/freemon` instead of `bin/rails`.
+
 Revenues need 日付, 取引先 and 金額:
 
 ```csv
@@ -47,18 +62,19 @@ Revenues need 日付, 取引先 and 金額:
 2026/8/31,合同会社デザインラボ,220000
 ```
 
-Expenses need 日付, 内容 and 金額; カテゴリ, 按分率 and インボイス are optional:
+Expenses need 日付, 内容 and 金額; カテゴリ, 按分率, インボイス and 購入方法 are optional:
 
 ```csv
-日付,内容,金額,カテゴリ,按分率,インボイス
-2026-07-01,MacBook Pro,298000,備品,80%,y
-2026-08-15,技術書,3520,書籍,,
+日付,内容,金額,カテゴリ,按分率,インボイス,購入方法
+2026-07-01,MacBook Pro,298000,備品,80%,y,オンライン
+2026-08-15,技術書,3520,書籍,,,店頭
 ```
 
 - Amounts are tax-included yen (税込); `¥`, `円`, commas and full-width digits are all accepted.
 - Dates can be written `2026-07-31`, `2026/7/31` or `2026年7月31日`. Each row is filed under the fiscal year of its date, which must already exist.
 - カテゴリ takes any part of a category's name (`備品`, `器具`, `Equipment`, …). Blank カテゴリ and 按分率 cells mean その他 and 100%.
 - インボイス is `y` (あり) or `n` (なし); `○` / `×` and `yes` / `no` work too. If you don't track invoices, leave it blank, write `null`, or leave the column out. That leaves the status 未設定, which is also where new expenses in the form start. Only 本則課税 uses it, and it never credits an unset expense; under 簡易課税 and 2割特例 it doesn't matter.
+- 購入方法 is `オンライン` or `店頭`; blank means 店頭・対面. Online purchases get an e-receipt by email, so only in-person ones are flagged (要領収書) in the expense list until a receipt photo is attached.
 - Files can be UTF-8 or Excel's Shift_JIS.
 - Nothing is saved if any row has an error, and rows identical to an existing record are skipped, so re-running a file is safe.
 
@@ -81,4 +97,4 @@ GitHub Actions runs the same checks on every branch push. Architecture notes for
 
 ## Deployment
 
-The app is set up for Kamal 2 on a single server with SQLite; the databases and uploads live in the `freemon_storage` volume. `config/deploy.yml` still has placeholder server and registry values, so it hasn't been deployed yet.
+The app is set up for Kamal 2 on a single server with SQLite; the databases and uploads live in the `freemon_storage` volume. `config/deploy.yml` still has placeholder server and registry values, so it hasn't been deployed yet. The app has no login: for personal use, prefer the local instance above, and add authentication before ever deploying it.

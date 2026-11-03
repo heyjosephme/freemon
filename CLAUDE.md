@@ -16,6 +16,7 @@ bin/rubocop -a         # Lint with auto-correct
 bin/ci                 # Full local CI: setup, rubocop, bundler-audit, importmap audit, brakeman, tests, system tests, seed test
 bin/rails revenues:import FILE=sales.csv          # Bulk-import revenues from a CSV (dry run; add COMMIT=1 to save)
 bin/rails expenses:import FILE=expenses.csv       # Same for expenses
+bin/freemon setup | bin/freemon | bin/freemon backup [DIR] | bin/freemon restore DIR   # The user's personal instance (see below)
 ```
 
 `bin/brakeman` is the stock Rails binstub, which prepends `--ensure-latest`: it exits 5 whenever a newer Brakeman has been released, even with zero warnings. Fix with `bundle update brakeman`; `bundle exec brakeman` scans without the version gate. GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on every branch push.
@@ -52,7 +53,7 @@ No external services needed. In **production**, all backed by SQLite, each in it
 
 Development and test use a single SQLite file and Rails' simple adapters instead (dev: `memory_store` cache, async jobs and cable; test: `null_store` cache, test adapters).
 
-**Active Storage** uses the Disk service in every environment (`storage/`, or `tmp/storage` in test).
+**Active Storage** uses the Disk service in every environment (`storage/`, or `STORAGE_DIR` when set; `tmp/storage` in test).
 
 ### Domain: Japanese Freelancer Tax & Bookkeeping
 
@@ -62,7 +63,7 @@ Everything except the chart of accounts is scoped to a `FiscalYear` (one per cal
 
 The year dashboard (`Views::FiscalYears::Show`) is ordered by how often each part is used: 経費 (daily, with a quick-add row) beside 事業収入 (monthly), then the once-a-year 給与所得 and 所得控除, then reports and analysis. Expense and revenue forms opened from it carry `return_to=dashboard` (whitelisted in the `ReturnsToDashboard` controller concern), so saving or cancelling goes back to the dashboard instead of the list. New entries default to today in the current year (`FiscalYear#default_entry_date`).
 
-**Core models:** `FiscalYear` → `SalaryIncome`, `Revenue`, `Expense`, `Deduction` (tax data), `JournalEntry` → `JournalEntryLine` (bookkeeping), `Account` (chart of accounts). Uploaded documents: `Revenue has_many_attached :invoices`, `Expense has_many_attached :receipts`. Assigning to a `has_many_attached` replaces the whole collection, so edit forms resubmit every kept file's `signed_id` through `Components::AttachedFiles` (checked checkboxes; unchecking one deletes that file). `Expense#invoice_eligible` has three values: true, false, or nil when the user doesn't track it (fine under 簡易課税 and 2割特例). It defaults to nil, so nothing is credited by accident. Only true earns 本則課税's input tax credit. `invoice_eligible?` is false for nil too, so compare with `== false` where "no invoice" and "unset" must differ (the expense list only flags the former).
+**Core models:** `FiscalYear` → `SalaryIncome`, `Revenue`, `Expense`, `Deduction` (tax data), `JournalEntry` → `JournalEntryLine` (bookkeeping), `Account` (chart of accounts). Uploaded documents: `Revenue has_many_attached :invoices`, `Expense has_many_attached :receipts`. Assigning to a `has_many_attached` replaces the whole collection, so edit forms resubmit every kept file's `signed_id` through `Components::AttachedFiles` (checked checkboxes; unchecking one deletes that file). `Expense#invoice_eligible` has three values: true, false, or nil when the user doesn't track it (fine under 簡易課税 and 2割特例). It defaults to nil, so nothing is credited by accident. `Expense#purchase_channel` is `in_person` (default) or `online`; online purchases get e-receipts by email, so `receipt_missing?` only flags in-person expenses without an attached receipt. Only true earns 本則課税's input tax credit. `invoice_eligible?` is false for nil too, so compare with `== false` where "no invoice" and "unset" must differ (the expense list only flags the former).
 
 **Two expense figures — don't mix them up:** `Expense#amount` is the full tax-included amount paid; `#deductible_amount` applies 家事按分 (`business_ratio`). Tax calculations use the 按分後 figure (`FiscalYear#total_expenses`); `CashflowReport` uses the full amount (実額); journal entries debit the deductible part to the expense account and the personal part to 事業主貸 (190).
 
@@ -93,6 +94,16 @@ The year dashboard (`Views::FiscalYears::Show`) is ordered by how often each par
 - Tests never load seeds, so whether `JournalEntrySync` runs depends on leftover DB state. A fresh test DB (GitHub Actions, parallel workers) has no `Account` rows and the `Account.any?` guard skips sync, but `bin/ci`'s seed step leaves the seeded accounts in `storage/test.sqlite3`, so later local runs do sync. Tests touching journal entries or the P&L/B/S should create their accounts with `find_or_create_by!(code:)`; that layer has no coverage today.
 - **System tests** (`test/system/`) inherit `ApplicationSystemTestCase` (Selenium + headless Chrome by default). Tests that don't need JavaScript opt into `driven_by :rack_test`, which submits forms exactly as rendered without a browser; `attachments_test.rb` does this. `year_switcher_test.rb` is the one real-browser test. Upload fixtures live in `test/fixtures/files/`.
 - Date-dependent behavior is tested with `travel_to` (see `test/integration/current_year_test.rb`).
+
+### Personal instance (`bin/freemon`)
+
+The user keeps their real books in a separate local instance, not in development: `bin/freemon` runs the app in **production mode** with data in `FREEMON_HOME` (default `~/Library/Application Support/Freemon`: `storage/` for the SQLite databases and uploads, plus the secret key and TLS certificate), served at https://freemon.localhost:4443. **Never read or change that data unless the user asks**; it holds their real finances. Development data stays sample data.
+
+- `STORAGE_DIR` relocates the production databases (`config/database.yml`) and the Disk service root (`config/storage.yml`); unset, both stay in `storage/` as before.
+- `FREEMON_HOST`, set only by `bin/freemon`, makes `config/environments/production.rb` accept just that host (blocking DNS rebinding; the app has no login), force SSL, and serve assets live via Propshaft (`config.assets.server`) so nothing is precompiled into the repo's `public/assets`, which would shadow development's assets.
+- `config/puma.rb` binds `ssl://127.0.0.1` when `SSL_CERT_PATH` is set (certificates come from mkcert). The launcher runs Puma directly, because `rails server` binds 0.0.0.0 outside development.
+- `bin/freemon COMMAND` passes any other command to `bin/rails` with the instance's environment. Production is a protected environment, so Rails refuses `db:reset`, `db:drop` and the like there.
+- `Freemon::Backup` (`lib/freemon/backup.rb`, behind `freemon:backup DIR=` / `freemon:restore FROM=`) snapshots the primary database with `VACUUM INTO` plus the upload folders; cache, queue and cable databases are rebuildable and skipped.
 
 ### Deployment
 
