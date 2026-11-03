@@ -115,7 +115,7 @@ class Views::FiscalYears::TaxSummary < Views::Base
 
       if @ct[:non_eligible_tax] > 0
         p(class: "text-sm text-gray-500 mt-4") do
-          plain "※ 非インボイス経費の消費税 "
+          plain "※ インボイスなし・未設定の経費の消費税 "
           render MoneyDisplay.new(amount: @ct[:non_eligible_tax], size: :sm)
           plain " は本則課税では控除できません。"
         end

@@ -10,7 +10,7 @@ class ExpensesController < ApplicationController
   end
 
   def new
-    @expense = @fiscal_year.expenses.build(date: Date.new(@fiscal_year.year, 1, 1), business_ratio: 100, invoice_eligible: true)
+    @expense = @fiscal_year.expenses.build(date: Date.new(@fiscal_year.year, 1, 1), business_ratio: 100)
     render Views::Expenses::New.new(fiscal_year: @fiscal_year, expense: @expense)
   end
 

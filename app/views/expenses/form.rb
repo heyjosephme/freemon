@@ -27,11 +27,10 @@ class Views::Expenses::Form < Views::Base
           hint: "事業で使用している割合 (1-100%)")
 
         div(class: "mb-4") do
-          div(class: "flex items-center") do
-            f.check_box :invoice_eligible, class: "h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
-            f.label :invoice_eligible, "インボイス対応 (Invoice Eligible)", class: "ml-2 text-sm text-gray-700"
-          end
-          p(class: "mt-1 text-sm text-gray-500") { "取引先がインボイス登録事業者の場合はチェック" }
+          f.label :invoice_eligible, "インボイス (Invoice)", class: "block text-sm font-medium text-gray-700 mb-1"
+          # A select rather than a checkbox so the status can stay unset: "" saves nil.
+          f.select :invoice_eligible, [ [ "未設定（管理しない）", "" ], [ "あり（適格請求書あり）", true ], [ "なし", false ] ], {}, class: input_classes
+          p(class: "mt-1 text-sm text-gray-500") { "本則課税では「あり」の経費だけが仕入税額控除の対象です。簡易課税・2割特例なら未設定で構いません。" }
         end
 
         div(class: "mb-4") do

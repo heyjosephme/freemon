@@ -10,37 +10,37 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_14_073344) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_03_035614) do
   create_table "accounts", force: :cascade do |t|
-    t.integer "account_type", null: false
     t.string "code", null: false
-    t.datetime "created_at", null: false
     t.string "name", null: false
     t.string "name_en"
+    t.integer "account_type", null: false
     t.boolean "system_default", default: false, null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["code"], name: "index_accounts_on_code", unique: true
   end
 
   create_table "active_storage_attachments", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "record_type", null: false
+    t.bigint "record_id", null: false
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
-    t.string "name", null: false
-    t.bigint "record_id", null: false
-    t.string "record_type", null: false
     t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
     t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
   end
 
   create_table "active_storage_blobs", force: :cascade do |t|
-    t.bigint "byte_size", null: false
-    t.string "checksum"
-    t.string "content_type"
-    t.datetime "created_at", null: false
-    t.string "filename", null: false
     t.string "key", null: false
+    t.string "filename", null: false
+    t.string "content_type"
     t.text "metadata"
     t.string "service_name", null: false
+    t.bigint "byte_size", null: false
+    t.string "checksum"
+    t.datetime "created_at", null: false
     t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
   end
 
@@ -51,42 +51,42 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_073344) do
   end
 
   create_table "deductions", force: :cascade do |t|
+    t.integer "fiscal_year_id", null: false
+    t.integer "deduction_type", null: false
     t.integer "amount", null: false
     t.datetime "created_at", null: false
-    t.integer "deduction_type", null: false
-    t.integer "fiscal_year_id", null: false
     t.datetime "updated_at", null: false
     t.index ["fiscal_year_id"], name: "index_deductions_on_fiscal_year_id"
   end
 
   create_table "expenses", force: :cascade do |t|
-    t.integer "amount", null: false
-    t.integer "business_ratio", default: 100, null: false
-    t.integer "category", default: 6, null: false
-    t.datetime "created_at", null: false
-    t.date "date", null: false
-    t.string "description", null: false
     t.integer "fiscal_year_id", null: false
-    t.boolean "invoice_eligible", default: true, null: false
+    t.string "description", null: false
+    t.integer "amount", null: false
+    t.integer "category", default: 6, null: false
+    t.integer "business_ratio", default: 100, null: false
+    t.boolean "invoice_eligible"
+    t.date "date", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["fiscal_year_id"], name: "index_expenses_on_fiscal_year_id"
   end
 
   create_table "fiscal_years", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.integer "filing_type", default: 0, null: false
-    t.datetime "updated_at", null: false
     t.integer "year", null: false
+    t.integer "filing_type", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["year"], name: "index_fiscal_years_on_year", unique: true
   end
 
   create_table "journal_entries", force: :cascade do |t|
-    t.datetime "created_at", null: false
+    t.integer "fiscal_year_id", null: false
     t.date "date", null: false
     t.string "description", null: false
-    t.integer "fiscal_year_id", null: false
-    t.integer "source_id"
     t.string "source_type"
+    t.integer "source_id"
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["fiscal_year_id", "date"], name: "index_journal_entries_on_fiscal_year_id_and_date"
     t.index ["fiscal_year_id"], name: "index_journal_entries_on_fiscal_year_id"
@@ -94,32 +94,32 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_073344) do
   end
 
   create_table "journal_entry_lines", force: :cascade do |t|
+    t.integer "journal_entry_id", null: false
     t.integer "account_id", null: false
+    t.integer "side", null: false
     t.integer "amount", null: false
     t.datetime "created_at", null: false
-    t.integer "journal_entry_id", null: false
-    t.integer "side", null: false
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_journal_entry_lines_on_account_id"
     t.index ["journal_entry_id"], name: "index_journal_entry_lines_on_journal_entry_id"
   end
 
   create_table "revenues", force: :cascade do |t|
-    t.integer "amount", null: false
-    t.string "client_name", null: false
-    t.datetime "created_at", null: false
-    t.date "date", null: false
     t.integer "fiscal_year_id", null: false
+    t.string "client_name", null: false
+    t.integer "amount", null: false
+    t.date "date", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["fiscal_year_id"], name: "index_revenues_on_fiscal_year_id"
   end
 
   create_table "salary_incomes", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.integer "fiscal_year_id", null: false
     t.integer "gross_salary", null: false
-    t.integer "social_insurance", null: false
     t.integer "tax_withheld", null: false
+    t.integer "social_insurance", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["fiscal_year_id"], name: "index_salary_incomes_on_fiscal_year_id", unique: true
   end

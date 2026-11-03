@@ -34,7 +34,7 @@ class Views::Expenses::Index < Views::Base
                   if expense.high_value?
                     span(class: "ml-2 text-xs text-yellow-600") { "(高額)" }
                   end
-                  unless expense.invoice_eligible?
+                  if expense.invoice_eligible == false # unset (nil) isn't flagged
                     span(class: "ml-2 text-xs text-red-500") { "(非インボイス)" }
                   end
                 end

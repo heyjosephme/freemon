@@ -18,10 +18,11 @@ class ConsumptionTaxCalculator
     result[:total_revenue_tax_included] = total_revenue
     result[:output_tax] = total_revenue * 10 / 110
 
-    # Input tax: from invoice-eligible expenses only (after 家事按分)
+    # Input tax: from invoice-eligible expenses only (after 家事按分). Unset (nil)
+    # status counts as no invoice.
     invoice_expenses = fiscal_year.expenses.where(invoice_eligible: true)
     result[:input_tax] = invoice_expenses.sum("amount * 10 / 110 * business_ratio / 100")
-    result[:non_eligible_tax] = fiscal_year.expenses.where(invoice_eligible: false)
+    result[:non_eligible_tax] = fiscal_year.expenses.where(invoice_eligible: [ false, nil ])
                                   .sum("amount * 10 / 110 * business_ratio / 100")
 
     # Method 1: 本則課税 (Standard) — can be negative (= refund)
