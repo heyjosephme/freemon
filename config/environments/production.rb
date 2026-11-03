@@ -33,6 +33,16 @@ Rails.application.configure do
   # Skip http-to-https redirect for the default health check endpoint.
   # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
+  # bin/freemon runs this environment as a private instance on your machine.
+  # Only its hostname is accepted, which blocks DNS rebinding against an app
+  # with no login; traffic is HTTPS-only; and assets are served live instead
+  # of being precompiled into the repo, where they'd shadow development's.
+  if ENV["FREEMON_HOST"].present?
+    config.hosts = [ ENV["FREEMON_HOST"] ]
+    config.force_ssl = true
+    config.assets.server = true
+  end
+
   # Log to STDOUT with the current request id as a default log tag.
   config.log_tags = [ :request_id ]
   config.logger   = ActiveSupport::TaggedLogging.logger(STDOUT)

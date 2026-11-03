@@ -2,9 +2,10 @@ test:
   service: Disk
   root: <%= Rails.root.join("tmp/storage") %>
 
+# bin/freemon sets STORAGE_DIR so uploads live with the personal instance's data.
 local:
   service: Disk
-  root: <%= Rails.root.join("storage") %>
+  root: <%= ENV.fetch("STORAGE_DIR") { Rails.root.join("storage") } %>
 
 # Use bin/rails credentials:edit to set the AWS secrets (as aws:access_key_id|secret_access_key)
 # amazon:

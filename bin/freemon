@@ -1,0 +1,120 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Runs Freemon with your real data as a private instance on this machine:
+# production mode, data kept outside the repo, HTTPS on a local hostname.
+# Development (bin/dev) stays separate, with sample data only.
+
+require "fileutils"
+require "securerandom"
+
+APP_ROOT = File.expand_path("..", __dir__)
+HOME = File.expand_path(ENV.fetch("FREEMON_HOME", "~/Library/Application Support/Freemon"))
+HOST = ENV.fetch("FREEMON_HOST", "freemon.localhost")
+PORT = ENV.fetch("FREEMON_PORT", "4443")
+URL = "https://#{HOST}:#{PORT}"
+SECRET = File.join(HOME, "secret_key_base")
+CERT = File.join(HOME, "tls", "cert.pem")
+KEY = File.join(HOME, "tls", "key.pem")
+PIDFILE = File.join(HOME, "server.pid")
+
+USAGE = <<~TEXT
+  Usage:
+    bin/freemon setup          one-time: data folder, secret key, HTTPS certificate, database
+    bin/freemon                start at #{URL} (applies pending migrations first)
+    bin/freemon backup [DIR]   snapshot the database and receipts (default: #{HOME}/backups/<time>)
+    bin/freemon restore DIR    restore a snapshot; the current data is backed up first
+    bin/freemon COMMAND...     any rails command against your data, e.g. revenues:import FILE=sales.csv
+
+  Data lives in #{HOME}.
+  FREEMON_HOME, FREEMON_HOST and FREEMON_PORT override the defaults.
+TEXT
+
+def instance_env
+  {
+    "RAILS_ENV" => "production",
+    "STORAGE_DIR" => File.join(HOME, "storage"),
+    "SECRET_KEY_BASE" => File.read(SECRET).strip,
+    "FREEMON_HOST" => HOST,
+    "BIND" => "127.0.0.1",
+    "PORT" => PORT,
+    "SSL_CERT_PATH" => CERT,
+    "SSL_KEY_PATH" => KEY,
+    "PIDFILE" => PIDFILE,
+    "SOLID_QUEUE_IN_PUMA" => "1"
+  }
+end
+
+def rails(*args)
+  system(instance_env, "bin/rails", *args, chdir: APP_ROOT) or abort "bin/rails #{args.join(" ")} failed"
+end
+
+def set_up? = [ SECRET, CERT, KEY ].all? { |path| File.exist?(path) }
+
+def require_setup!
+  abort "Not set up yet. Run bin/freemon setup first." unless set_up?
+end
+
+def running?
+  pid = File.read(PIDFILE).to_i
+  pid.positive? && Process.kill(0, pid) == 1
+rescue Errno::ENOENT, Errno::ESRCH
+  false
+end
+
+def timestamp = Time.now.strftime("%Y%m%d-%H%M%S")
+
+def setup
+  FileUtils.mkdir_p(File.join(HOME, "storage"), mode: 0o700)
+  FileUtils.chmod(0o700, HOME)
+  File.write(SECRET, SecureRandom.hex(64), perm: 0o600) unless File.exist?(SECRET)
+
+  unless File.exist?(CERT) && File.exist?(KEY)
+    abort <<~TEXT unless system("command -v mkcert > /dev/null")
+      The HTTPS certificate is made with mkcert, which isn't installed:
+        brew install mkcert
+        mkcert -install    # lets this Mac trust certificates mkcert makes (asks for your password)
+      Then run bin/freemon setup again.
+    TEXT
+    FileUtils.mkdir_p(File.dirname(CERT), mode: 0o700)
+    system("mkcert", "-cert-file", CERT, "-key-file", KEY, HOST) or abort "mkcert failed"
+  end
+
+  rails "db:prepare"
+  puts "Set up in #{HOME}. Start Freemon with bin/freemon, then open #{URL}"
+end
+
+def server
+  require_setup!
+  abort "Freemon is already running at #{URL}" if running?
+
+  rails "tailwindcss:build"
+  rails "db:prepare"
+  puts "Freemon is running at #{URL}  (Ctrl-C to stop)"
+  exec(instance_env, "bundle", "exec", "puma", "-C", "config/puma.rb", chdir: APP_ROOT)
+end
+
+def backup(dir = nil)
+  require_setup!
+  rails "freemon:backup", "DIR=#{File.expand_path(dir || File.join(HOME, "backups", timestamp))}"
+end
+
+def restore(dir)
+  require_setup!
+  abort USAGE unless dir
+  abort "Stop Freemon first (it's running at #{URL})." if running?
+
+  backup File.join(HOME, "backups", "#{timestamp}-before-restore")
+  rails "freemon:restore", "FROM=#{File.expand_path(dir)}"
+end
+
+case ARGV.first
+when nil, "server" then server
+when "setup" then setup
+when "backup" then backup(ARGV[1])
+when "restore" then restore(ARGV[1])
+when "help", "-h", "--help" then puts USAGE
+else
+  require_setup!
+  exec(instance_env, "bin/rails", *ARGV, chdir: APP_ROOT)
+end
