@@ -37,6 +37,12 @@ class Views::Expenses::Form < Views::Base
         end
 
         div(class: "mb-4") do
+          f.label :purchase_channel, "購入方法 (Purchased)", class: "block text-sm font-medium text-gray-700 mb-1"
+          f.select :purchase_channel, Expense::PURCHASE_CHANNEL_LABELS.map { |key, label| [ label, key ] }, {}, class: input_classes
+          p(class: "mt-1 text-sm text-gray-500") { "オンラインは電子領収書がメールで届くので撮影は不要です。店頭・対面は紙の領収書を撮影して添付しましょう。" }
+        end
+
+        div(class: "mb-4") do
           f.label :receipts, "領収書・請求書 (Receipts/Invoices)", class: "block text-sm font-medium text-gray-700 mb-1"
           f.file_field :receipts, multiple: true, accept: ".pdf,.png,.jpg,.jpeg",
             class: "block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"

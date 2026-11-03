@@ -11,14 +11,24 @@ class ExpenseImportTest < ActiveSupport::TestCase
 
   test "reads every column" do
     import = ExpenseImport.new(<<~CSV)
-      日付,内容,金額,カテゴリ,按分率,インボイス
-      2030-07-01,MacBook Pro,"¥298,000",備品,８０％,○
+      日付,内容,金額,カテゴリ,按分率,インボイス,購入方法
+      2030-07-01,MacBook Pro,"¥298,000",備品,８０％,○,オンライン
     CSV
 
     assert_not import.errors?
-    assert_equal({ date: Date.new(2030, 7, 1), description: "MacBook Pro", amount: 298_000,
-                   category: "equipment", business_ratio: 80, invoice_eligible: true },
+    assert_equal({ date: Date.new(2030, 7, 1), description: "MacBook Pro", amount: 298_000, category: "equipment",
+                   business_ratio: 80, invoice_eligible: true, purchase_channel: "online" },
                  import.rows.first.attributes)
+  end
+
+  test "購入方法 takes オンライン or 店頭, and defaults to 店頭・対面" do
+    { "オンライン" => "online", "ｵﾝﾗｲﾝ" => "online", "online" => "online", "o" => "online",
+      "店頭" => "in_person", "対面" => "in_person", "" => "in_person" }.each do |cell, expected|
+      import = ExpenseImport.new("日付,内容,金額,購入方法\n2030-08-15,X,1000,#{cell}\n")
+      assert_equal expected, import.rows.first[:purchase_channel], cell
+    end
+    assert_equal "in_person", ExpenseImport.new("日付,内容,金額\n2030-08-15,X,1000\n").rows.first[:purchase_channel]
+    assert ExpenseImport.new("日付,内容,金額,購入方法\n2030-08-15,X,1000,郵送\n").errors?
   end
 
   test "blank optional cells mean その他 and 100%, and leave インボイス unset" do

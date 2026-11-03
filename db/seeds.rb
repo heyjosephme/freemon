@@ -49,12 +49,12 @@ if Rails.env.development? && FiscalYear.none?
   fy.revenues.create!(client_name: "合同会社デザインラボ", amount: 220_000, date: Date.new(2025, 9, 15))
   fy.revenues.create!(client_name: "株式会社テックコープ", amount: 550_000, date: Date.new(2025, 10, 31))
 
-  fy.expenses.create!(description: "MacBook Pro", amount: 298_000, category: :equipment, business_ratio: 80, invoice_eligible: true, date: Date.new(2025, 7, 1))
-  fy.expenses.create!(description: "コワーキングスペース月額 (7-12月)", amount: 180_000, category: :office, business_ratio: 100, invoice_eligible: true, date: Date.new(2025, 12, 31))
-  fy.expenses.create!(description: "インターネット回線 (年額)", amount: 72_000, category: :communication, business_ratio: 50, invoice_eligible: true, date: Date.new(2025, 12, 31))
-  fy.expenses.create!(description: "Adobe Creative Cloud", amount: 86_880, category: :software, business_ratio: 100, invoice_eligible: true, date: Date.new(2025, 12, 31))
-  fy.expenses.create!(description: "技術書", amount: 12_000, category: :books, business_ratio: 100, invoice_eligible: true, date: Date.new(2025, 8, 15))
-  fy.expenses.create!(description: "個人事業主カフェ作業 (レシート)", amount: 24_000, category: :other, business_ratio: 100, invoice_eligible: false, date: Date.new(2025, 12, 31))
+  fy.expenses.create!(description: "MacBook Pro", amount: 298_000, category: :equipment, business_ratio: 80, invoice_eligible: true, purchase_channel: :online, date: Date.new(2025, 7, 1))
+  fy.expenses.create!(description: "コワーキングスペース月額 (7-12月)", amount: 180_000, category: :office, business_ratio: 100, invoice_eligible: true, purchase_channel: :online, date: Date.new(2025, 12, 31))
+  fy.expenses.create!(description: "インターネット回線 (年額)", amount: 72_000, category: :communication, business_ratio: 50, invoice_eligible: true, purchase_channel: :online, date: Date.new(2025, 12, 31))
+  fy.expenses.create!(description: "Adobe Creative Cloud", amount: 86_880, category: :software, business_ratio: 100, invoice_eligible: true, purchase_channel: :online, date: Date.new(2025, 12, 31))
+  fy.expenses.create!(description: "技術書", amount: 12_000, category: :books, business_ratio: 100, invoice_eligible: true, purchase_channel: :in_person, date: Date.new(2025, 8, 15))
+  fy.expenses.create!(description: "個人事業主カフェ作業 (レシート)", amount: 24_000, category: :other, business_ratio: 100, invoice_eligible: false, purchase_channel: :in_person, date: Date.new(2025, 12, 31))
 
   fy.deductions.create!(deduction_type: :kokumin_health, amount: 180_000)
   fy.deductions.create!(deduction_type: :kokumin_pension, amount: 100_200)

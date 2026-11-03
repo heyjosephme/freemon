@@ -7,6 +7,7 @@ class Views::FiscalYears::Show < Views::Base
   RECENT_EXPENSES = 5
   RECENT_REVENUES = 3
   CATEGORY_CHOICES = Expense::CATEGORY_LABELS.keys.map { |key| [ Expense.category_name(key), key ] }.freeze
+  CHANNEL_CHOICES = Expense::PURCHASE_CHANNEL_LABELS.map { |key, label| [ label, key ] }.freeze
   QUICK_INPUT = "rounded-md border-0 py-1.5 px-2 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600"
 
   def initialize(fiscal_year:, reserve:, filing_year: nil, start_current_year: false)
@@ -127,21 +128,27 @@ class Views::FiscalYears::Show < Views::Base
     end
   end
 
-  # One row for routine expenses: 按分率 stays 100% and インボイス 未設定.
+  # Two short rows for routine expenses: 按分率 stays 100% and インボイス 未設定.
   # Anything more (receipts, 按分) goes through 詳細入力.
   def quick_add_expense
     form_with(model: Expense.new(date: @fiscal_year.default_entry_date), url: fiscal_year_expenses_path(@fiscal_year),
-              id: "quick-add-expense", class: "flex flex-wrap items-center gap-2 mb-5") do |f|
+              id: "quick-add-expense", class: "space-y-2 mb-5") do |f|
       input(type: "hidden", name: "return_to", value: "dashboard")
-      f.label :date, "日付", class: "sr-only"
-      f.date_field :date, required: true, class: "#{QUICK_INPUT} w-40"
-      f.label :description, "内容", class: "sr-only"
-      f.text_field :description, required: true, placeholder: "内容", class: "#{QUICK_INPUT} min-w-0 flex-1 basis-40"
-      f.label :amount, "金額（税込）", class: "sr-only"
-      f.number_field :amount, required: true, min: 1, placeholder: "金額（税込）", class: "#{QUICK_INPUT} w-32"
-      f.label :category, "カテゴリ", class: "sr-only"
-      f.select :category, CATEGORY_CHOICES, {}, class: "#{QUICK_INPUT} w-44"
-      f.submit "追加", class: "inline-flex items-center px-4 py-1.5 rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 cursor-pointer"
+      div(class: "flex flex-wrap gap-2") do
+        f.label :date, "日付", class: "sr-only"
+        f.date_field :date, required: true, class: "#{QUICK_INPUT} w-40"
+        f.label :description, "内容", class: "sr-only"
+        f.text_field :description, required: true, placeholder: "内容", class: "#{QUICK_INPUT} min-w-0 flex-1 basis-40"
+        f.label :amount, "金額（税込）", class: "sr-only"
+        f.number_field :amount, required: true, min: 1, placeholder: "金額（税込）", class: "#{QUICK_INPUT} w-36"
+      end
+      div(class: "flex flex-wrap items-center gap-2") do
+        f.label :category, "カテゴリ", class: "sr-only"
+        f.select :category, CATEGORY_CHOICES, {}, class: "#{QUICK_INPUT} w-44"
+        f.label :purchase_channel, "購入方法", class: "sr-only"
+        f.select :purchase_channel, CHANNEL_CHOICES, {}, class: "#{QUICK_INPUT} w-36"
+        f.submit "追加", class: "ml-auto inline-flex items-center px-4 py-1.5 rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 cursor-pointer"
+      end
     end
   end
 

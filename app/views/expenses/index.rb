@@ -37,6 +37,11 @@ class Views::Expenses::Index < Views::Base
                   if expense.invoice_eligible == false # unset (nil) isn't flagged
                     span(class: "ml-2 text-xs text-red-500") { "(非インボイス)" }
                   end
+                  if expense.online?
+                    span(class: "ml-2 text-xs text-gray-400") { "(オンライン)" }
+                  elsif expense.receipt_missing?
+                    span(class: "ml-2 text-xs text-amber-600") { "(要領収書)" }
+                  end
                 end
                 td(class: td_classes) do
                   render Badge.new(text: expense.category_label, color: :gray)

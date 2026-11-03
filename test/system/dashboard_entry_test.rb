@@ -20,6 +20,7 @@ class DashboardEntryTest < ApplicationSystemTestCase
       fill_in "内容", with: "コワーキング 6月"
       fill_in "金額（税込）", with: "30000"
       select "事務所・コワーキング", from: "カテゴリ"
+      select "オンライン", from: "購入方法"
       click_on "追加"
     end
 
@@ -27,8 +28,9 @@ class DashboardEntryTest < ApplicationSystemTestCase
     assert_text "経費を登録しました。"
     assert_link text: /06\/15.*コワーキング 6月.*¥30,000/
     expense = @fiscal_year.expenses.sole
-    assert_equal [ Date.new(2031, 6, 15), 30_000, "office", 100, nil ],
-                 [ expense.date, expense.amount, expense.category, expense.business_ratio, expense.invoice_eligible ]
+    assert_equal [ Date.new(2031, 6, 15), 30_000, "office", 100, nil, "online" ],
+                 [ expense.date, expense.amount, expense.category, expense.business_ratio, expense.invoice_eligible,
+                   expense.purchase_channel ]
   end
 
   test "a quick-add with a problem opens the full form, which still comes back here" do

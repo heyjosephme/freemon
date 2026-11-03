@@ -18,6 +18,15 @@ class Expense < ApplicationRecord
     other: 6            # その他
   }, default: :other
 
+  # Where it was bought. Online purchases get an e-receipt by email, so only
+  # in-person ones need a photo of the paper receipt.
+  enum :purchase_channel, { in_person: 0, online: 1 }, default: :in_person
+
+  PURCHASE_CHANNEL_LABELS = {
+    "in_person" => "店頭・対面",
+    "online" => "オンライン"
+  }.freeze
+
   CATEGORY_LABELS = {
     "equipment" => "備品・器具 (Equipment)",
     "office" => "事務所・コワーキング (Office)",
@@ -53,6 +62,15 @@ class Expense < ApplicationRecord
 
   def category_label
     CATEGORY_LABELS[category]
+  end
+
+  def purchase_channel_label
+    PURCHASE_CHANNEL_LABELS[purchase_channel]
+  end
+
+  # Paid in person but no photo of the paper receipt attached yet.
+  def receipt_missing?
+    in_person? && !receipts.attached?
   end
 
   # The Japanese part of a category's label, e.g. "備品・器具".

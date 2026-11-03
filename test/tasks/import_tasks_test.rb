@@ -51,7 +51,7 @@ class ImportTasksTest < ActiveSupport::TestCase
   test "an expense dry run shows category, 按分 and the deductible total" do
     output = run_task("expenses:import", FILE: file_fixture("expenses.csv").to_s)
 
-    assert_match "新規     2行目  2025-07-01      ¥298,000  MacBook Pro（備品・器具、按分80%、インボイスあり）", output
+    assert_match "新規     2行目  2025-07-01      ¥298,000  MacBook Pro（備品・器具、按分80%、インボイスあり、オンライン）", output
     assert_match "新規     4行目  2025-08-15        ¥3,520  技術書（書籍・学習、按分100%）", output
     assert_match "2025年: 新規4件 ¥337,520（按分後 ¥274,920）", output
     assert_equal 0, Expense.count

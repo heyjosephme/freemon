@@ -7,7 +7,7 @@ class ExpensesController < ApplicationController
   before_action :set_expense, only: [ :edit, :update, :destroy ]
 
   def index
-    @expenses = @fiscal_year.expenses.order(date: :desc)
+    @expenses = @fiscal_year.expenses.with_attached_receipts.order(date: :desc)
     render Views::Expenses::Index.new(fiscal_year: @fiscal_year, expenses: @expenses)
   end
 
@@ -57,6 +57,6 @@ class ExpensesController < ApplicationController
   def back_path = dashboard_or(fiscal_year_expenses_path(@fiscal_year))
 
   def expense_params
-    params.expect(expense: [ :description, :amount, :category, :business_ratio, :invoice_eligible, :date, receipts: [] ])
+    params.expect(expense: [ :description, :amount, :category, :business_ratio, :invoice_eligible, :purchase_channel, :date, receipts: [] ])
   end
 end

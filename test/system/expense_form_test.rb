@@ -32,6 +32,16 @@ class ExpenseFormTest < ApplicationSystemTestCase
     end
   end
 
+  test "the form records where an expense was bought" do
+    visit edit_fiscal_year_expense_path(@fiscal_year, @expense)
+    assert_field "購入方法 (Purchased)", with: "in_person"
+
+    select "オンライン", from: "購入方法 (Purchased)"
+    click_on "更新"
+
+    assert @expense.reload.online?
+  end
+
   test "new expenses start unset, so nothing is credited by accident" do
     visit new_fiscal_year_expense_path(@fiscal_year)
     assert_field "インボイス (Invoice)", with: ""
