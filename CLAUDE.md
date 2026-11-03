@@ -15,6 +15,7 @@ bin/rubocop            # Lint (rubocop-rails-omakase style)
 bin/rubocop -a         # Lint with auto-correct
 bin/ci                 # Full local CI: setup, rubocop, bundler-audit, importmap audit, brakeman, tests, system tests, seed test
 bin/rails revenues:import FILE=sales.csv          # Bulk-import revenues from a CSV (dry run; add COMMIT=1 to save)
+bin/rails expenses:import FILE=expenses.csv       # Same for expenses
 ```
 
 `bin/brakeman` is the stock Rails binstub, which prepends `--ensure-latest`: it exits 5 whenever a newer Brakeman has been released, even with zero warnings. Fix with `bundle update brakeman`; `bundle exec brakeman` scans without the version gate. GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on every branch push.
@@ -59,7 +60,7 @@ Everything except the chart of accounts is scoped to a `FiscalYear` (one per cal
 
 `/` redirects to `FiscalYear.home` (this year, else the most recent earlier year, else the latest), and the navbar switches years. The app runs on Tokyo time (`config.time_zone`), so "this year" turns over at midnight JST. From January to March, this year's and last year's dashboards link to last year's open 確定申告 (`FiscalYear#open_filing_deadlines`).
 
-**Core models:** `FiscalYear` → `SalaryIncome`, `Revenue`, `Expense`, `Deduction` (tax data), `JournalEntry` → `JournalEntryLine` (bookkeeping), `Account` (chart of accounts). Uploaded documents: `Revenue has_many_attached :invoices`, `Expense has_many_attached :receipts`. Assigning to a `has_many_attached` replaces the whole collection, so edit forms resubmit every kept file's `signed_id` through `Components::AttachedFiles` (checked checkboxes; unchecking one deletes that file).
+**Core models:** `FiscalYear` → `SalaryIncome`, `Revenue`, `Expense`, `Deduction` (tax data), `JournalEntry` → `JournalEntryLine` (bookkeeping), `Account` (chart of accounts). Uploaded documents: `Revenue has_many_attached :invoices`, `Expense has_many_attached :receipts`. Assigning to a `has_many_attached` replaces the whole collection, so edit forms resubmit every kept file's `signed_id` through `Components::AttachedFiles` (checked checkboxes; unchecking one deletes that file). `Expense#invoice_eligible` has three values: true, false, or nil when the user doesn't track it (fine under 簡易課税 and 2割特例). It defaults to nil, so nothing is credited by accident. Only true earns 本則課税's input tax credit. `invoice_eligible?` is false for nil too, so compare with `== false` where "no invoice" and "unset" must differ (the expense list only flags the former).
 
 **Two expense figures — don't mix them up:** `Expense#amount` is the full tax-included amount paid; `#deductible_amount` applies 家事按分 (`business_ratio`). Tax calculations use the 按分後 figure (`FiscalYear#total_expenses`); `CashflowReport` uses the full amount (実額); journal entries debit the deductible part to the expense account and the personal part to 事業主貸 (190).
 
@@ -75,7 +76,7 @@ Everything except the chart of accounts is scoped to a `FiscalYear` (one per cal
 - `TaxSavingSimulator` — re-runs the calculators with hypothetical 小規模企業共済 / iDeCo contributions (所得控除: lowers income and resident tax, not 国保) and 経営セーフティ共済 (必要経費: also lowers 国保).
 - `CashflowReport` — monthly in/out plus by-client and by-category breakdowns, at full amounts (see above).
 
-**Bulk import:** `RevenueImport` (behind `bin/rails revenues:import`) reads a hand-made `日付,取引先,金額` CSV in UTF-8 or Shift_JIS (example: `test/fixtures/files/revenues.csv`). It checks every row before saving anything, saves all-or-nothing, files each row under the fiscal year of its date, and skips rows identical to an existing revenue, so re-running a file is safe.
+**Bulk import:** `RevenueImport` and `ExpenseImport` (behind `bin/rails revenues:import` / `expenses:import`, both in `lib/tasks/import.rake`) read hand-made CSVs in UTF-8 or Shift_JIS; examples are in `test/fixtures/files/`. They share `CsvImport`, which checks every row before saving anything, saves all-or-nothing, files each row under the fiscal year of its date, and skips rows identical to an existing record (each subclass's `IDENTITY`), so re-running a file is safe. Subclasses declare `MODEL`, `IDENTITY` and `COLUMNS` (header aliases, required or optional) and implement `#attributes_for`.
 
 **Tax rules are not year-aware:** brackets, deductions and rates are constants in each class (e.g. `IncomeTaxCalculator::BASIC_DEDUCTION`, `SalaryIncome::DEDUCTION_BRACKETS`) and apply to every fiscal year. 基礎控除 is also hard-coded as `480_000` in `Views::FiscalYears::Show`.
 

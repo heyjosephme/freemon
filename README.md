@@ -10,7 +10,7 @@ A personal tax and bookkeeping app for a Japanese freelancer (個人事業主), 
 - **Bookkeeping**: revenues and expenses (家事按分, インボイス対応, attached invoices and receipts) post journal entries automatically, and manual entries are supported. Reports: 仕訳帳, 総勘定元帳, 損益計算書, 貸借対照表.
 - **Analysis and planning**: monthly cashflow, how much to set aside for 所得税・消費税・住民税・国保, and what 小規模企業共済 / iDeCo / 経営セーフティ共済 contributions would save.
 - **Current-year home page**: opens this year's dashboard, and from January to March links to last year's open 確定申告 and its deadlines.
-- **Bulk revenue import** from a CSV ([below](#importing-revenues-from-a-csv)).
+- **Bulk import** of revenues and expenses from CSV ([below](#importing-revenues-and-expenses-from-csv)).
 
 ## Requirements
 
@@ -29,9 +29,17 @@ Then open http://localhost:3000. The development database is seeded with the cha
 
 All data, the SQLite databases and uploaded files alike, lives in `storage/`, which git ignores. Back it up.
 
-## Importing revenues from a CSV
+## Importing revenues and expenses from CSV
 
-Write a CSV with a header row:
+Both imports read a hand-made CSV with a header row. They show a dry run first and only save with `COMMIT=1`:
+
+```bash
+bin/rails revenues:import FILE=sales.csv            # dry run: lists what would be saved
+bin/rails revenues:import FILE=sales.csv COMMIT=1   # saves
+bin/rails expenses:import FILE=expenses.csv         # the same for expenses
+```
+
+Revenues need 日付, 取引先 and 金額:
 
 ```csv
 日付,取引先,金額
@@ -39,15 +47,20 @@ Write a CSV with a header row:
 2026/8/31,合同会社デザインラボ,220000
 ```
 
-```bash
-bin/rails revenues:import FILE=sales.csv            # dry run: lists what would be saved
-bin/rails revenues:import FILE=sales.csv COMMIT=1   # saves
+Expenses need 日付, 内容 and 金額; カテゴリ, 按分率 and インボイス are optional:
+
+```csv
+日付,内容,金額,カテゴリ,按分率,インボイス
+2026-07-01,MacBook Pro,298000,備品,80%,y
+2026-08-15,技術書,3520,書籍,,
 ```
 
 - Amounts are tax-included yen (税込); `¥`, `円`, commas and full-width digits are all accepted.
 - Dates can be written `2026-07-31`, `2026/7/31` or `2026年7月31日`. Each row is filed under the fiscal year of its date, which must already exist.
+- カテゴリ takes any part of a category's name (`備品`, `器具`, `Equipment`, …). Blank カテゴリ and 按分率 cells mean その他 and 100%.
+- インボイス is `y` (あり) or `n` (なし); `○` / `×` and `yes` / `no` work too. If you don't track invoices, leave it blank, write `null`, or leave the column out. That leaves the status 未設定, which is also where new expenses in the form start. Only 本則課税 uses it, and it never credits an unset expense; under 簡易課税 and 2割特例 it doesn't matter.
 - Files can be UTF-8 or Excel's Shift_JIS.
-- Nothing is saved if any row has an error, and rows identical to an existing revenue are skipped, so re-running a file is safe.
+- Nothing is saved if any row has an error, and rows identical to an existing record are skipped, so re-running a file is safe.
 
 ## Development
 

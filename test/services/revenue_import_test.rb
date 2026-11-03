@@ -24,7 +24,7 @@ class RevenueImportTest < ActiveSupport::TestCase
     assert_equal [ [ 2, Date.new(2030, 7, 31), "株式会社テックコープ", 550_000 ],
                    [ 3, Date.new(2030, 8, 31), "株式会社テックコープ", 550_000 ],
                    [ 4, Date.new(2030, 9, 15), "合同会社デザインラボ", 220_000 ] ],
-                 import.rows.map { |row| [ row.line, row.date, row.client_name, row.amount ] }
+                 import.rows.map { |row| [ row.line, row[:date], row[:client_name], row[:amount] ] }
     assert import.rows.all? { |row| row.status == :new && row.fiscal_year == @fiscal_year }
   end
 
@@ -34,7 +34,7 @@ class RevenueImportTest < ActiveSupport::TestCase
 
     [ english, japanese ].each do |import|
       assert_not import.errors?
-      assert_equal [ "Acme", 110_000 ], [ import.rows.first.client_name, import.rows.first.amount ]
+      assert_equal [ "Acme", 110_000 ], [ import.rows.first[:client_name], import.rows.first[:amount] ]
     end
   end
 
@@ -43,7 +43,7 @@ class RevenueImportTest < ActiveSupport::TestCase
     import = RevenueImport.from_file(path)
 
     assert_not import.errors?
-    assert_equal [ "株式会社テックコープ", 550_000 ], [ import.rows.first.client_name, import.rows.first.amount ]
+    assert_equal [ "株式会社テックコープ", 550_000 ], [ import.rows.first[:client_name], import.rows.first[:amount] ]
   end
 
   test "reads UTF-8 files with a byte order mark" do
