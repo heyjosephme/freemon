@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class ExpensesController < ApplicationController
+  include ReturnsToDashboard
+
   before_action :set_fiscal_year
   before_action :set_expense, only: [ :edit, :update, :destroy ]
 
@@ -10,28 +12,30 @@ class ExpensesController < ApplicationController
   end
 
   def new
-    @expense = @fiscal_year.expenses.build(date: Date.new(@fiscal_year.year, 1, 1), business_ratio: 100)
-    render Views::Expenses::New.new(fiscal_year: @fiscal_year, expense: @expense)
+    @expense = @fiscal_year.expenses.build(date: @fiscal_year.default_entry_date, business_ratio: 100)
+    render Views::Expenses::New.new(fiscal_year: @fiscal_year, expense: @expense, back_path: back_path, return_to: return_to)
   end
 
   def create
     @expense = @fiscal_year.expenses.build(expense_params)
     if @expense.save
-      redirect_to fiscal_year_expenses_path(@fiscal_year), notice: "経費を登録しました。"
+      redirect_to back_path, notice: "経費を登録しました。"
     else
-      render Views::Expenses::New.new(fiscal_year: @fiscal_year, expense: @expense), status: :unprocessable_entity
+      render Views::Expenses::New.new(fiscal_year: @fiscal_year, expense: @expense, back_path: back_path, return_to: return_to),
+             status: :unprocessable_entity
     end
   end
 
   def edit
-    render Views::Expenses::Edit.new(fiscal_year: @fiscal_year, expense: @expense)
+    render Views::Expenses::Edit.new(fiscal_year: @fiscal_year, expense: @expense, back_path: back_path, return_to: return_to)
   end
 
   def update
     if @expense.update(expense_params)
-      redirect_to fiscal_year_expenses_path(@fiscal_year), notice: "経費を更新しました。"
+      redirect_to back_path, notice: "経費を更新しました。"
     else
-      render Views::Expenses::Edit.new(fiscal_year: @fiscal_year, expense: @expense), status: :unprocessable_entity
+      render Views::Expenses::Edit.new(fiscal_year: @fiscal_year, expense: @expense, back_path: back_path, return_to: return_to),
+             status: :unprocessable_entity
     end
   end
 
@@ -49,6 +53,8 @@ class ExpensesController < ApplicationController
   def set_expense
     @expense = @fiscal_year.expenses.find(params[:id])
   end
+
+  def back_path = dashboard_or(fiscal_year_expenses_path(@fiscal_year))
 
   def expense_params
     params.expect(expense: [ :description, :amount, :category, :business_ratio, :invoice_eligible, :date, receipts: [] ])

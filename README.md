@@ -9,7 +9,7 @@ A personal tax and bookkeeping app for a Japanese freelancer (個人事業主), 
 - **確定申告**: income tax combining 給与所得 and 事業所得 (青色申告特別控除, 損益通算, 復興特別所得税), and consumption tax compared across 本則課税 / 簡易課税 / 2割特例.
 - **Bookkeeping**: revenues and expenses (家事按分, インボイス対応, attached invoices and receipts) post journal entries automatically, and manual entries are supported. Reports: 仕訳帳, 総勘定元帳, 損益計算書, 貸借対照表.
 - **Analysis and planning**: monthly cashflow, how much to set aside for 所得税・消費税・住民税・国保, and what 小規模企業共済 / iDeCo / 経営セーフティ共済 contributions would save.
-- **Current-year home page**: opens this year's dashboard, and from January to March links to last year's open 確定申告 and its deadlines.
+- **Expense-first dashboard**: opens on this year, with 経費 front and centre (a quick-add row for everyday entries) beside 事業収入, and the once-a-year sections tucked below. From January to March it links to last year's open 確定申告 and its deadlines.
 - **Bulk import** of revenues and expenses from CSV ([below](#importing-revenues-and-expenses-from-csv)).
 
 ## Requirements

@@ -1,15 +1,18 @@
 # frozen_string_literal: true
 
 class Views::Expenses::Form < Views::Base
-  def initialize(fiscal_year:, expense:)
+  def initialize(fiscal_year:, expense:, back_path:, return_to: nil)
     @fiscal_year = fiscal_year
     @expense = expense
+    @back_path = back_path
+    @return_to = return_to
   end
 
   def view_template
     url = @expense.persisted? ? fiscal_year_expense_path(@fiscal_year, @expense) : fiscal_year_expenses_path(@fiscal_year)
 
     form_with(model: @expense, url: url, class: "space-y-6") do |f|
+      input(type: "hidden", name: "return_to", value: @return_to) if @return_to
       render Card.new do
         field(f, :description, "内容 (Description)", type: :text_field, placeholder: "例: コワーキングスペース利用料")
         field(f, :amount, "金額 税込 (Amount, tax included)", type: :number_field, min: 1, placeholder: "¥")
@@ -45,7 +48,7 @@ class Views::Expenses::Form < Views::Base
         div(class: "flex gap-3 pt-4") do
           f.submit(@expense.persisted? ? "更新" : "登録",
             class: "inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 cursor-pointer")
-          a(href: fiscal_year_expenses_path(@fiscal_year),
+          a(href: @back_path,
             class: "inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50") { "キャンセル" }
         end
       end

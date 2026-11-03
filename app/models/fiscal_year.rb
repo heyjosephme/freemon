@@ -34,6 +34,9 @@ class FiscalYear < ApplicationRecord
     year
   end
 
+  # New entries start on today's date in the current year, else on January 1st.
+  def default_entry_date = year == self.class.current_year ? Date.current : Date.new(year, 1, 1)
+
   # Deadlines for this year's return that are still ahead, during the
   # January–March after the year ends. Empty at any other time.
   def open_filing_deadlines(today = Date.current)

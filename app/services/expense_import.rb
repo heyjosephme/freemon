@@ -38,7 +38,7 @@ class ExpenseImport < CsvImport
   INVOICE_UNSET = [ "", "null", "nil", "未設定", "不明", "-", "ー" ].freeze
 
   def describe(row)
-    details = [ category_name(row[:category]), "按分#{row[:business_ratio]}%" ]
+    details = [ Expense.category_name(row[:category]), "按分#{row[:business_ratio]}%" ]
     details << { true => "インボイスあり", false => "インボイスなし" }[row[:invoice_eligible]]
     format("%s  %12s  %s（%s）", row[:date], yen(row[:amount]), row[:description], details.compact.join("、"))
   end
@@ -66,7 +66,7 @@ class ExpenseImport < CsvImport
     return "other" if name.empty?
 
     CATEGORIES.fetch(name) do
-      errors << "カテゴリが不明です: #{text.inspect}（使える値: #{Expense::CATEGORY_LABELS.keys.map { |key| category_name(key) }.join("、")}）"
+      errors << "カテゴリが不明です: #{text.inspect}（使える値: #{Expense::CATEGORY_LABELS.keys.map { |key| Expense.category_name(key) }.join("、")}）"
       nil
     end
   end
@@ -90,6 +90,4 @@ class ExpenseImport < CsvImport
     errors << "インボイスは y（あり）・n（なし）か空欄（未設定）で入力してください: #{text.inspect}"
     nil
   end
-
-  def category_name(key) = Expense::CATEGORY_LABELS.fetch(key).sub(/ \(.*\)\z/, "")
 end

@@ -1,15 +1,18 @@
 # frozen_string_literal: true
 
 class Views::Revenues::Form < Views::Base
-  def initialize(fiscal_year:, revenue:)
+  def initialize(fiscal_year:, revenue:, back_path:, return_to: nil)
     @fiscal_year = fiscal_year
     @revenue = revenue
+    @back_path = back_path
+    @return_to = return_to
   end
 
   def view_template
     url = @revenue.persisted? ? fiscal_year_revenue_path(@fiscal_year, @revenue) : fiscal_year_revenues_path(@fiscal_year)
 
     form_with(model: @revenue, url: url, class: "space-y-6") do |f|
+      input(type: "hidden", name: "return_to", value: @return_to) if @return_to
       render Card.new do
         field(f, :client_name, "取引先名 (Client Name)", type: :text_field)
         field(f, :amount, "金額 (税込) (Amount, tax included)", type: :number_field, min: 1, placeholder: "¥")
@@ -27,7 +30,7 @@ class Views::Revenues::Form < Views::Base
         div(class: "flex gap-3 pt-4") do
           f.submit(@revenue.persisted? ? "更新" : "登録",
             class: "inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 cursor-pointer")
-          a(href: fiscal_year_revenues_path(@fiscal_year),
+          a(href: @back_path,
             class: "inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50") { "キャンセル" }
         end
       end

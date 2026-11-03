@@ -55,6 +55,9 @@ class Expense < ApplicationRecord
     CATEGORY_LABELS[category]
   end
 
+  # The Japanese part of a category's label, e.g. "備品・器具".
+  def self.category_name(category) = CATEGORY_LABELS.fetch(category).sub(/ \(.*\)\z/, "")
+
   private
 
   def sync_journal_entry

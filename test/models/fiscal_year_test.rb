@@ -19,6 +19,13 @@ class FiscalYearTest < ActiveSupport::TestCase
     assert_empty @fiscal_year.open_filing_deadlines(Date.new(2031, 4, 1))
   end
 
+  test "new entries start today in the current year, else on January 1st" do
+    travel_to Date.new(2031, 6, 15) do
+      assert_equal Date.new(2031, 6, 15), FiscalYear.new(year: 2031).default_entry_date
+      assert_equal Date.new(2030, 1, 1), @fiscal_year.default_entry_date
+    end
+  end
+
   test "home is this year, else the most recent earlier year, else the latest" do
     travel_to Date.new(2031, 6, 1) do
       assert_equal @fiscal_year, FiscalYear.home
