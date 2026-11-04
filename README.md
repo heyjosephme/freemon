@@ -17,13 +17,13 @@ A personal tax and bookkeeping app for a Japanese freelancer (個人事業主), 
   Each year's share flows into 所得税 and the journal entries, and the 減価償却 page lays it out like the 青色申告決算書's 減価償却費の計算.
 - **Recurring bills** (定期経費): set up rent, internet, phone and utilities once, with their category and 家事按分. The dashboard lists each month that's due and not recorded yet. Fixed amounts take one click (or one for all of them), varying ones just need the amount, and a month without a bill can be skipped. Nothing is recorded on its own. Any expense can be turned into one (定期経費にする).
 - **Analysis and planning**: monthly cashflow, how much to set aside for 所得税・消費税・住民税・国保, and what 小規模企業共済 / iDeCo / 経営セーフティ共済 contributions would save.
-- **Expense-first dashboard**: opens on this year, with 経費 front and centre (a quick-add row for everyday entries) beside 事業収入, and the once-a-year sections tucked below. Revenue that repeats is one 複製 away: it opens 売上を追加 with the same client and amount, dated a month later. From January to March it links to last year's open 確定申告 and its deadlines.
+- **Expense-first dashboard**: opens on this year, with 経費 front and centre (a quick-add row for everyday entries) beside 事業収入, and the once-a-year sections tucked below. Revenue that repeats is one 複製 away: it opens a filled-in row right under the entry (same client and amount, a month later), and Enter saves it. From January to March it links to last year's open 確定申告 and its deadlines.
 - **Bulk import** of revenues and expenses from CSV ([below](#importing-revenues-and-expenses-from-csv)).
 
 ## Requirements
 
 - Ruby 4.0.0 (see `.ruby-version`) and SQLite 3
-- Google Chrome, for the two browser-based system tests
+- Google Chrome, for the browser-based system tests
 - Optional: libvips (`brew install vips`), used to analyze uploaded image receipts
 
 ## Getting started (development)

@@ -11,9 +11,16 @@ class RevenuesController < ApplicationController
     render Views::Revenues::Index.new(fiscal_year: @fiscal_year, revenues: @revenues)
   end
 
+  # 複製 (?from_revenue=ID) fills the form from another revenue. Loaded into the
+  # frame under that revenue, it's just an inline row; otherwise the full form.
   def new
-    @revenue = @fiscal_year.revenues.build(copied_attributes || { date: @fiscal_year.default_entry_date })
-    render Views::Revenues::New.new(fiscal_year: @fiscal_year, revenue: @revenue, back_path: back_path, return_to: return_to)
+    source = Revenue.find_by(id: params[:from_revenue])
+    @revenue = @fiscal_year.revenues.build(source ? copied_attributes(source) : { date: @fiscal_year.default_entry_date })
+    if source && turbo_frame_request?
+      render Views::Revenues::CopyRow.new(fiscal_year: @fiscal_year, revenue: @revenue, source: source, return_to: return_to)
+    else
+      render Views::Revenues::New.new(fiscal_year: @fiscal_year, revenue: @revenue, back_path: back_path, return_to: return_to)
+    end
   end
 
   def create
@@ -56,13 +63,9 @@ class RevenuesController < ApplicationController
 
   def back_path = dashboard_or(fiscal_year_revenues_path(@fiscal_year))
 
-  # 複製 (?from_revenue=ID): the same client and amount, a month after the original.
-  # Nothing is saved until the form is submitted.
-  def copied_attributes
-    source = Revenue.find_by(id: params[:from_revenue]) or return
-
-    { client_name: source.client_name, amount: source.amount, date: source.next_month_date }
-  end
+  # The same client and amount, a month after the original. Nothing is saved
+  # until the form is submitted.
+  def copied_attributes(source) = { client_name: source.client_name, amount: source.amount, date: source.next_month_date }
 
   def revenue_params
     params.expect(revenue: [ :client_name, :amount, :date, invoices: [] ])

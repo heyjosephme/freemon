@@ -25,6 +25,7 @@ class Views::Revenues::Index < Views::Base
           end
           tbody(class: "divide-y divide-gray-100") do
             @revenues.each do |revenue|
+              copy_target = revenue.next_month_fiscal_year
               tr do
                 td(class: td_classes) { revenue.date.to_s }
                 td(class: td_classes) { revenue.client_name }
@@ -33,9 +34,11 @@ class Views::Revenues::Index < Views::Base
                 td(class: "#{td_classes} text-right") do
                   div(class: "flex gap-3 justify-end") do
                     a(href: edit_fiscal_year_revenue_path(@fiscal_year, revenue), class: "text-indigo-600 hover:text-indigo-800 text-sm") { "編集" }
-                    # 複製: a copy a month later, in that month's fiscal year once it exists.
-                    if (target = revenue.next_month_fiscal_year)
-                      a(href: new_fiscal_year_revenue_path(target, from_revenue: revenue.id), title: "翌月分として複製",
+                    # 複製: a copy a month later, in that month's fiscal year once it exists,
+                    # opened as an inline row in the frame below.
+                    if copy_target
+                      a(href: new_fiscal_year_revenue_path(copy_target, from_revenue: revenue.id), title: "翌月分として複製",
+                        data: { turbo_frame: Views::Revenues::CopyRow.frame_id(revenue) },
                         class: "text-indigo-600 hover:text-indigo-800 text-sm") { "複製" }
                     end
                     button_to "削除", fiscal_year_revenue_path(@fiscal_year, revenue),
@@ -43,6 +46,12 @@ class Views::Revenues::Index < Views::Base
                       class: "text-red-600 hover:text-red-800 text-sm",
                       data: { turbo_confirm: "「#{revenue.client_name}」の売上 ¥#{ActiveSupport::NumberHelper.number_to_delimited(revenue.amount)} を削除しますか？" }
                   end
+                end
+              end
+              # Hidden while its frame is empty, so the table looks the same until 複製 fills it.
+              if copy_target
+                tr(class: "[&:has(turbo-frame:empty)]:hidden") do
+                  td(colspan: 5, class: "px-4 pb-3") { turbo_frame(id: Views::Revenues::CopyRow.frame_id(revenue), class: "block") }
                 end
               end
             end

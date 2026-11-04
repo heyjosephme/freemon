@@ -71,7 +71,7 @@ class DashboardEntryTest < ApplicationSystemTestCase
     assert_equal Date.new(2031, 6, 15), @fiscal_year.revenues.sole.date
   end
 
-  test "複製 fills in next month's revenue from this one" do
+  test "without JavaScript, 複製 opens the full form filled in for next month" do
     @fiscal_year.revenues.create!(client_name: "株式会社テックコープ", amount: 550_000, date: Date.new(2031, 5, 31))
 
     visit fiscal_year_path(@fiscal_year)

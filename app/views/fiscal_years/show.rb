@@ -247,7 +247,8 @@ class Views::FiscalYears::Show < Views::Base
   end
 
   # 複製: the new-revenue form filled in from this one, a month later, in that
-  # month's fiscal year. None until that year has been started.
+  # month's fiscal year (none until that year has been started). It opens as an
+  # inline row in the frame under the revenue.
   def copy_revenue_path(revenue)
     fiscal_year = revenue.next_month_fiscal_year
     new_fiscal_year_revenue_path(fiscal_year, from_revenue: revenue.id, return_to: "dashboard") if fiscal_year
@@ -318,7 +319,8 @@ class Views::FiscalYears::Show < Views::Base
   end
 
   # Latest entries, each linking to its edit form (which comes back here), plus
-  # 複製 where copy_path gives a path for the entry.
+  # 複製 where copy_path gives a path for the entry. Its inline row loads into
+  # the empty frame under the entry.
   def recent_entries(id:, records:, label:, edit_path:, empty:, copy_path: nil)
     if records.empty?
       p(class: "text-sm text-gray-400 py-2") { empty }
@@ -328,13 +330,19 @@ class Views::FiscalYears::Show < Views::Base
     ul(id: id, class: "divide-y divide-gray-100") do
       records.each do |record|
         copy = copy_path&.call(record)
-        li(class: "flex items-center gap-3") do
-          a(href: edit_path.(record), class: "flex min-w-0 flex-1 items-baseline gap-3 py-2 px-2 -mx-2 rounded text-sm hover:bg-gray-50") do
-            span(class: "w-12 shrink-0 tabular-nums text-gray-400") { record.date.strftime("%m/%d") }
-            span(class: "min-w-0 flex-1 truncate text-gray-800") { record.public_send(label) }
-            span(class: "tabular-nums text-gray-900") { yen(record.amount) }
+        li do
+          div(class: "flex items-center gap-3") do
+            a(href: edit_path.(record), class: "flex min-w-0 flex-1 items-baseline gap-3 py-2 px-2 -mx-2 rounded text-sm hover:bg-gray-50") do
+              span(class: "w-12 shrink-0 tabular-nums text-gray-400") { record.date.strftime("%m/%d") }
+              span(class: "min-w-0 flex-1 truncate text-gray-800") { record.public_send(label) }
+              span(class: "tabular-nums text-gray-900") { yen(record.amount) }
+            end
+            if copy
+              a(href: copy, title: "翌月分として複製", data: { turbo_frame: Views::Revenues::CopyRow.frame_id(record) },
+                class: "shrink-0 text-xs text-indigo-600 hover:text-indigo-800") { "複製" }
+            end
           end
-          a(href: copy, title: "翌月分として複製", class: "shrink-0 text-xs text-indigo-600 hover:text-indigo-800") { "複製" } if copy
+          turbo_frame(id: Views::Revenues::CopyRow.frame_id(record), class: "block") if copy
         end
       end
     end
