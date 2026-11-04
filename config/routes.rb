@@ -25,5 +25,15 @@ Rails.application.routes.draw do
 
   resources :accounts, only: [ :index, :new, :create, :edit, :update ]
 
+  # 定期経費 span years, so they sit outside fiscal_years. The dashboard records
+  # or skips one month's bill at a time, or all fixed-amount ones at once.
+  resources :recurring_expenses, except: :show do
+    member do
+      post :record
+      post :skip
+    end
+    post :record_all, on: :collection
+  end
+
   get "up" => "rails/health#show", as: :rails_health_check
 end

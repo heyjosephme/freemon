@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_03_141912) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_04_094930) do
   create_table "accounts", force: :cascade do |t|
     t.string "code", null: false
     t.string "name", null: false
@@ -73,7 +73,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_141912) do
     t.integer "kind", default: 0, null: false
     t.integer "accounting_method"
     t.integer "useful_life"
+    t.integer "recurring_expense_id"
+    t.date "recurring_month"
     t.index ["fiscal_year_id"], name: "index_expenses_on_fiscal_year_id"
+    t.index ["recurring_expense_id", "recurring_month"], name: "index_expenses_on_recurring_expense_id_and_recurring_month", unique: true
   end
 
   create_table "fiscal_years", force: :cascade do |t|
@@ -108,6 +111,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_141912) do
     t.index ["journal_entry_id"], name: "index_journal_entry_lines_on_journal_entry_id"
   end
 
+  create_table "recurring_expenses", force: :cascade do |t|
+    t.string "description", null: false
+    t.integer "category", default: 6, null: false
+    t.integer "amount"
+    t.integer "business_ratio", default: 100, null: false
+    t.boolean "invoice_eligible"
+    t.integer "purchase_channel", default: 1, null: false
+    t.integer "interval_months", default: 1, null: false
+    t.date "starts_on", null: false
+    t.date "ends_on"
+    t.json "skipped_months", default: [], null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "revenues", force: :cascade do |t|
     t.integer "fiscal_year_id", null: false
     t.string "client_name", null: false
@@ -132,6 +150,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_141912) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "deductions", "fiscal_years"
   add_foreign_key "expenses", "fiscal_years"
+  add_foreign_key "expenses", "recurring_expenses"
   add_foreign_key "journal_entries", "fiscal_years"
   add_foreign_key "journal_entry_lines", "accounts"
   add_foreign_key "journal_entry_lines", "journal_entries"

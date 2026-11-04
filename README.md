@@ -15,6 +15,7 @@ A personal tax and bookkeeping app for a Japanese freelancer (個人事業主), 
   - anything larger: 定額法 depreciation over its 耐用年数.
   
   Each year's share flows into 所得税 and the journal entries, and the 減価償却 page lays it out like the 青色申告決算書's 減価償却費の計算.
+- **Recurring bills** (定期経費): set up rent, internet, phone and utilities once, with their category and 家事按分. The dashboard lists each month that's due and not recorded yet. Fixed amounts take one click (or one for all of them), varying ones just need the amount, and a month without a bill can be skipped. Nothing is recorded on its own. Any expense can be turned into one (定期経費にする).
 - **Analysis and planning**: monthly cashflow, how much to set aside for 所得税・消費税・住民税・国保, and what 小規模企業共済 / iDeCo / 経営セーフティ共済 contributions would save.
 - **Expense-first dashboard**: opens on this year, with 経費 front and centre (a quick-add row for everyday entries) beside 事業収入, and the once-a-year sections tucked below. From January to March it links to last year's open 確定申告 and its deadlines.
 - **Bulk import** of revenues and expenses from CSV ([below](#importing-revenues-and-expenses-from-csv)).
@@ -103,6 +104,7 @@ GitHub Actions runs the same checks on every branch push. Architecture notes for
 - 2割特例 is always offered, but it only applies to eligible businesses for tax years up to 2026.
 - 住民税 and 国保 are estimates. 国保 uses 東京23区 rates from around 2024 and doesn't model 軽減.
 - The 少額減価償却資産の特例 limit is ¥400,000, following the 2026 rules; it was ¥300,000 before, and like the other rules it applies to every year.
+- 定期経費 are dated on their payment day, so a bill paid in January for December's usage counts in the new year. That's a common simplification if you stick to it every year; strictly accrual-based books would put it in December as 未払金.
 - The balance sheet carries balances from year to year, but there are no opening balances or 売掛金 collections yet. 普通預金 can therefore go negative and 売掛金 only grows; record those with manual journal entries.
 
 ## Deployment

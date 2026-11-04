@@ -13,6 +13,7 @@ class Components::Navbar < Components::Base
           a(href: root_path, class: "text-xl font-bold text-indigo-600") { "Freemon" }
           div(class: "flex items-center gap-6") do
             year_switcher
+            a(href: recurring_expenses_path, class: "text-sm text-gray-600 hover:text-gray-900") { "定期経費" }
             a(href: accounts_path, class: "text-sm text-gray-600 hover:text-gray-900") { "勘定科目" }
           end
         end

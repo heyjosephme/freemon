@@ -39,6 +39,7 @@ class Views::Expenses::Index < Views::Base
                   if expense.invoice_eligible == false # unset (nil) isn't flagged
                     span(class: "ml-2 text-xs text-red-500") { "(非インボイス)" }
                   end
+                  span(class: "ml-2 text-xs text-gray-400") { "(定期)" } if expense.recurring_expense_id
                   if expense.online?
                     span(class: "ml-2 text-xs text-gray-400") { "(オンライン)" }
                   elsif expense.receipt_missing?

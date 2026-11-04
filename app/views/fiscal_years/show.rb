@@ -10,11 +10,12 @@ class Views::FiscalYears::Show < Views::Base
   CHANNEL_CHOICES = Expense::PURCHASE_CHANNEL_LABELS.map { |key, label| [ label, key ] }.freeze
   QUICK_INPUT = "rounded-md border-0 py-1.5 px-2 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600"
 
-  def initialize(fiscal_year:, reserve:, filing_year: nil, start_current_year: false)
+  def initialize(fiscal_year:, reserve:, filing_year: nil, start_current_year: false, recurring_bills: [])
     @fiscal_year = fiscal_year
     @reserve = reserve
     @filing_year = filing_year
     @start_current_year = start_current_year
+    @recurring_bills = recurring_bills
   end
 
   def view_template
@@ -112,6 +113,7 @@ class Views::FiscalYears::Show < Views::Base
         render Button.new(href: new_fiscal_year_expense_path(@fiscal_year, return_to: "dashboard"), variant: :secondary, size: :sm) { "詳細入力" }
       end
       quick_add_expense
+      recurring_bills
 
       div(id: "expense-totals", class: "flex flex-wrap gap-x-6 gap-y-1 text-sm mb-3") do
         total("今月", expenses.where(date: Date.current.all_month).sum(:amount)) if current_year?
@@ -149,6 +151,67 @@ class Views::FiscalYears::Show < Views::Base
         f.select :purchase_channel, CHANNEL_CHOICES, {}, class: "#{QUICK_INPUT} w-36"
         f.submit "追加", class: "ml-auto inline-flex items-center px-4 py-1.5 rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 cursor-pointer"
       end
+    end
+  end
+
+  # 定期経費 due through this month and not recorded yet. Fixed amounts come filled
+  # in and varying ones wait for theirs; each row records only when its button is
+  # pressed, never on page load.
+  def recurring_bills
+    if @recurring_bills.empty?
+      return unless RecurringExpense.exists?
+
+      p(id: "recurring-bills", class: "mb-4 text-sm text-gray-500") do
+        plain "定期経費: 未登録はありません ✓ "
+        a(href: recurring_expenses_path, class: "text-indigo-600 hover:text-indigo-800") { "管理" }
+      end
+      return
+    end
+
+    div(id: "recurring-bills", class: "mb-5 rounded-md border border-amber-200 bg-amber-50 px-3 py-2") do
+      div(class: "flex items-center justify-between gap-3") do
+        h3(class: "text-sm font-medium text-amber-800") { "定期経費 (Recurring) 未登録 #{@recurring_bills.size}件" }
+        a(href: recurring_expenses_path, class: "text-xs text-indigo-600 hover:text-indigo-800") { "管理 →" }
+      end
+      # A backlog (after months away, or a template started long ago) scrolls inside the box
+      # rather than pushing the rest of the dashboard down.
+      ul(class: "max-h-96 overflow-y-auto divide-y divide-amber-100") { @recurring_bills.each { |bill| recurring_bill(bill) } }
+      record_all_fixed_bills
+    end
+  end
+
+  def recurring_bill(bill)
+    template = bill.recurring_expense
+    name = "#{template.description} #{bill.month.month}月分"
+    amount_id = "bill-#{template.id}-#{bill.month.strftime("%Y%m")}-amount"
+
+    li do
+      # One form per bill: 登録 records it; スキップ sends the same month to skip
+      # (formaction) without needing an amount (formnovalidate).
+      form_with(url: record_recurring_expense_path(template), class: "flex flex-wrap items-center gap-2 py-2") do
+        input(type: "hidden", name: "month", value: bill.month.iso8601)
+        span(class: "w-12 shrink-0 tabular-nums text-sm text-gray-500") { bill.date.strftime("%m/%d") }
+        span(class: "min-w-0 flex-1 basis-32 truncate text-sm text-gray-800") do
+          plain template.description
+          span(class: "ml-2 text-xs text-gray-500") { "按分#{template.business_ratio}%" } if template.business_ratio < 100
+        end
+        label(for: amount_id, class: "sr-only") { "#{name}の金額" }
+        input(type: "number", id: amount_id, name: "amount", value: template.amount, required: true, min: 1, placeholder: "金額",
+              class: "#{QUICK_INPUT} w-28 text-right")
+        button(type: "submit", class: "inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 cursor-pointer") { "登録" }
+        button(type: "submit", formaction: skip_recurring_expense_path(template), formnovalidate: true,
+               class: "text-xs text-gray-500 hover:text-gray-800 cursor-pointer", data: { turbo_confirm: "#{name}をスキップしますか？" }) { "スキップ" }
+      end
+    end
+  end
+
+  def record_all_fixed_bills
+    fixed = @recurring_bills.count { |bill| bill.recurring_expense.fixed_amount? }
+    return if fixed < 2
+
+    div(class: "pt-1 pb-1 text-right") do
+      button_to "固定額の#{fixed}件をまとめて登録", record_all_recurring_expenses_path, params: { fiscal_year_id: @fiscal_year.id },
+        class: "text-sm font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer"
     end
   end
 

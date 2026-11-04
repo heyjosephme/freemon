@@ -18,7 +18,8 @@ class FiscalYearsController < ApplicationController
       fiscal_year: @fiscal_year,
       reserve: TaxReserveEstimator.new(@fiscal_year).calculate,
       filing_year: open_filing_year,
-      start_current_year: start_current_year?
+      start_current_year: start_current_year?,
+      recurring_bills: RecurringExpense.pending_in(@fiscal_year.year)
     )
   end
 

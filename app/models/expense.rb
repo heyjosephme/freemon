@@ -2,6 +2,8 @@
 
 class Expense < ApplicationRecord
   belongs_to :fiscal_year
+  # Set when it was recorded from a 定期経費, with the month it pays (the 1st).
+  belongs_to :recurring_expense, optional: true
   # One entry, or for assets spread over years, one when bought plus one per year.
   has_many :journal_entries, as: :source, dependent: :destroy
   has_many_attached :receipts
@@ -81,6 +83,8 @@ class Expense < ApplicationRecord
   validates :business_ratio, presence: true, numericality: { in: 1..100, only_integer: true }
   validates :date, presence: true
   validate :accounting_method_fits, if: :asset?
+  validates :recurring_month, uniqueness: { scope: :recurring_expense_id, message: "この月の分はもう登録されています" },
+                              if: :recurring_expense_id?
 
   # Deductible amount after applying business use ratio (家事按分)
   def deductible_amount
@@ -94,9 +98,10 @@ class Expense < ApplicationRecord
     amount * 10 / 110 * business_ratio / 100
   end
 
-  # ¥100,000 or more: worth recording as 設備・資産 if it's equipment.
+  # ¥100,000 or more: worth recording as 設備・資産 if it's equipment. Bills
+  # recorded from a 定期経費 (rent, say) never are.
   def high_value?
-    amount >= IMMEDIATE_LIMIT
+    amount >= IMMEDIATE_LIMIT && recurring_expense_id.nil?
   end
 
   def category_label

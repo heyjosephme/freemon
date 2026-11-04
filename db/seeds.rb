@@ -55,7 +55,14 @@ if Rails.env.development? && FiscalYear.none?
 
   fy.expenses.create!(description: "MacBook Pro", amount: 298_000, category: :equipment, kind: :asset, business_ratio: 80, invoice_eligible: true, purchase_channel: :online, date: Date.new(2025, 7, 1))
   fy.expenses.create!(description: "コワーキングスペース月額 (7-12月)", amount: 180_000, category: :office, business_ratio: 100, invoice_eligible: true, purchase_channel: :online, date: Date.new(2025, 12, 31))
-  fy.expenses.create!(description: "インターネット回線 (年額)", amount: 72_000, category: :communication, business_ratio: 50, invoice_eligible: true, purchase_channel: :online, date: Date.new(2025, 12, 31))
+  # 定期経費: a fixed monthly bill recorded all year, and a varying one whose
+  # December is still waiting on the dashboard.
+  internet = RecurringExpense.create!(description: "インターネット回線", amount: 6_000, category: :communication, business_ratio: 50, invoice_eligible: true, starts_on: Date.new(2025, 1, 27))
+  1.upto(12) { |month| internet.expense_for(Date.new(2025, month, 1)).save! }
+  power = RecurringExpense.create!(description: "電気代", category: :utilities, business_ratio: 30, invoice_eligible: true, starts_on: Date.new(2025, 1, 26))
+  [ 11_200, 10_400, 9_100, 7_800, 6_900, 8_300, 11_800, 12_600, 9_400, 7_600, 8_800 ].each.with_index(1) do |amount, month|
+    power.expense_for(Date.new(2025, month, 1), amount: amount).save!
+  end
   fy.expenses.create!(description: "Adobe Creative Cloud", amount: 86_880, category: :software, business_ratio: 100, invoice_eligible: true, purchase_channel: :online, date: Date.new(2025, 12, 31))
   fy.expenses.create!(description: "技術書", amount: 12_000, category: :books, business_ratio: 100, invoice_eligible: true, purchase_channel: :in_person, date: Date.new(2025, 8, 15))
   fy.expenses.create!(description: "個人事業主カフェ作業 (レシート)", amount: 24_000, category: :other, business_ratio: 100, invoice_eligible: false, purchase_channel: :in_person, date: Date.new(2025, 12, 31))
