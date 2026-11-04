@@ -12,7 +12,7 @@ class RevenuesController < ApplicationController
   end
 
   def new
-    @revenue = @fiscal_year.revenues.build(date: @fiscal_year.default_entry_date)
+    @revenue = @fiscal_year.revenues.build(copied_attributes || { date: @fiscal_year.default_entry_date })
     render Views::Revenues::New.new(fiscal_year: @fiscal_year, revenue: @revenue, back_path: back_path, return_to: return_to)
   end
 
@@ -55,6 +55,14 @@ class RevenuesController < ApplicationController
   end
 
   def back_path = dashboard_or(fiscal_year_revenues_path(@fiscal_year))
+
+  # 複製 (?from_revenue=ID): the same client and amount, a month after the original.
+  # Nothing is saved until the form is submitted.
+  def copied_attributes
+    source = Revenue.find_by(id: params[:from_revenue]) or return
+
+    { client_name: source.client_name, amount: source.amount, date: source.next_month_date }
+  end
 
   def revenue_params
     params.expect(revenue: [ :client_name, :amount, :date, invoices: [] ])

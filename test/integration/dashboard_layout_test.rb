@@ -43,7 +43,7 @@ class DashboardLayoutTest < ActionDispatch::IntegrationTest
     assert_select "#recent-expenses a", count: 5
     assert_select "#recent-expenses a", text: /経費6/
     assert_select "#recent-expenses a", text: /経費1/, count: 0
-    assert_select "#recent-revenues a", count: 3
+    assert_select "#recent-revenues li", count: 3
     assert_select "#recent-revenues a[href=?]", edit_fiscal_year_revenue_path(@fiscal_year, @fiscal_year.revenues.find_by!(client_name: "取引先6"), return_to: "dashboard")
   end
 

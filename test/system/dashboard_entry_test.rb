@@ -71,6 +71,21 @@ class DashboardEntryTest < ApplicationSystemTestCase
     assert_equal Date.new(2031, 6, 15), @fiscal_year.revenues.sole.date
   end
 
+  test "複製 fills in next month's revenue from this one" do
+    @fiscal_year.revenues.create!(client_name: "株式会社テックコープ", amount: 550_000, date: Date.new(2031, 5, 31))
+
+    visit fiscal_year_path(@fiscal_year)
+    within("#recent-revenues") { click_on "複製" }
+    assert_field "取引先名 (Client Name)", with: "株式会社テックコープ"
+    assert_field "日付 (Date)", with: "2031-06-30"
+    click_on "登録"
+
+    assert_current_path fiscal_year_path(@fiscal_year)
+    assert_text "売上を登録しました。"
+    assert_equal [ [ Date.new(2031, 5, 31), 550_000 ], [ Date.new(2031, 6, 30), 550_000 ] ],
+                 @fiscal_year.revenues.order(:date).pluck(:date, :amount)
+  end
+
   test "cancelling a form opened from the dashboard goes back to it" do
     visit fiscal_year_path(@fiscal_year)
     click_on "詳細入力"

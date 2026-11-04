@@ -227,13 +227,35 @@ class Views::FiscalYears::Show < Views::Base
         span(class: "text-gray-500") { "#{revenues.count}件" }
       end
 
-      recent_entries(
-        id: "recent-revenues", label: :client_name, empty: "まだ売上がありません。",
-        records: revenues.order(date: :desc, id: :desc).limit(RECENT_REVENUES),
-        edit_path: ->(revenue) { edit_fiscal_year_revenue_path(@fiscal_year, revenue, return_to: "dashboard") }
-      )
+      if revenues.none? && (previous = previous_year_to_copy_from)
+        # In January, December's revenue to copy is in last year's list.
+        p(class: "text-sm text-gray-400 py-2") do
+          plain "まだ売上がありません。毎月の売上は"
+          a(href: fiscal_year_revenues_path(previous), class: "text-indigo-600 hover:text-indigo-800") { "#{previous.year}年の一覧" }
+          plain "から複製できます。"
+        end
+      else
+        recent_entries(
+          id: "recent-revenues", label: :client_name, empty: "まだ売上がありません。",
+          records: revenues.order(date: :desc, id: :desc).limit(RECENT_REVENUES),
+          edit_path: ->(revenue) { edit_fiscal_year_revenue_path(@fiscal_year, revenue, return_to: "dashboard") },
+          copy_path: ->(revenue) { copy_revenue_path(revenue) }
+        )
+      end
       list_link(fiscal_year_revenues_path(@fiscal_year))
     end
+  end
+
+  # 複製: the new-revenue form filled in from this one, a month later, in that
+  # month's fiscal year. None until that year has been started.
+  def copy_revenue_path(revenue)
+    fiscal_year = revenue.next_month_fiscal_year
+    new_fiscal_year_revenue_path(fiscal_year, from_revenue: revenue.id, return_to: "dashboard") if fiscal_year
+  end
+
+  def previous_year_to_copy_from
+    previous = FiscalYear.find_by(year: @fiscal_year.year - 1)
+    previous if previous&.revenues&.exists?
   end
 
   def salary_summary
@@ -295,8 +317,9 @@ class Views::FiscalYears::Show < Views::Base
     end
   end
 
-  # Latest entries, each linking to its edit form (which comes back here).
-  def recent_entries(id:, records:, label:, edit_path:, empty:)
+  # Latest entries, each linking to its edit form (which comes back here), plus
+  # 複製 where copy_path gives a path for the entry.
+  def recent_entries(id:, records:, label:, edit_path:, empty:, copy_path: nil)
     if records.empty?
       p(class: "text-sm text-gray-400 py-2") { empty }
       return
@@ -304,12 +327,14 @@ class Views::FiscalYears::Show < Views::Base
 
     ul(id: id, class: "divide-y divide-gray-100") do
       records.each do |record|
-        li do
-          a(href: edit_path.(record), class: "flex items-baseline gap-3 py-2 px-2 -mx-2 rounded text-sm hover:bg-gray-50") do
+        copy = copy_path&.call(record)
+        li(class: "flex items-center gap-3") do
+          a(href: edit_path.(record), class: "flex min-w-0 flex-1 items-baseline gap-3 py-2 px-2 -mx-2 rounded text-sm hover:bg-gray-50") do
             span(class: "w-12 shrink-0 tabular-nums text-gray-400") { record.date.strftime("%m/%d") }
             span(class: "min-w-0 flex-1 truncate text-gray-800") { record.public_send(label) }
             span(class: "tabular-nums text-gray-900") { yen(record.amount) }
           end
+          a(href: copy, title: "翌月分として複製", class: "shrink-0 text-xs text-indigo-600 hover:text-indigo-800") { "複製" } if copy
         end
       end
     end

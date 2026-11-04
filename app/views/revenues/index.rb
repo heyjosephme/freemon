@@ -33,6 +33,11 @@ class Views::Revenues::Index < Views::Base
                 td(class: "#{td_classes} text-right") do
                   div(class: "flex gap-3 justify-end") do
                     a(href: edit_fiscal_year_revenue_path(@fiscal_year, revenue), class: "text-indigo-600 hover:text-indigo-800 text-sm") { "編集" }
+                    # 複製: a copy a month later, in that month's fiscal year once it exists.
+                    if (target = revenue.next_month_fiscal_year)
+                      a(href: new_fiscal_year_revenue_path(target, from_revenue: revenue.id), title: "翌月分として複製",
+                        class: "text-indigo-600 hover:text-indigo-800 text-sm") { "複製" }
+                    end
                     button_to "削除", fiscal_year_revenue_path(@fiscal_year, revenue),
                       method: :delete,
                       class: "text-red-600 hover:text-red-800 text-sm",
