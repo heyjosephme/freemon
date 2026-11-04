@@ -11,12 +11,13 @@ class Expense < ApplicationRecord
 
   enum :category, {
     equipment: 0,       # 備品・器具
-    office: 1,          # 事務所・コワーキング
+    office: 1,          # 家賃・事務所 (地代家賃)
     communication: 2,   # 通信費
     software: 3,        # ソフトウェア・サブスクリプション
     transportation: 4,  # 交通費
     books: 5,           # 書籍・学習
-    other: 6            # その他
+    other: 6,           # その他
+    utilities: 7        # 水道光熱費
   }, default: :other
 
   # Where it was bought. Online purchases get an e-receipt by email, so only
@@ -56,9 +57,11 @@ class Expense < ApplicationRecord
     "normal_depreciation" => "通常の減価償却（定額法）"
   }.freeze
 
+  # In the order forms list them.
   CATEGORY_LABELS = {
     "equipment" => "備品・器具 (Equipment)",
-    "office" => "事務所・コワーキング (Office)",
+    "office" => "家賃・事務所 (Rent/Office)",
+    "utilities" => "水道光熱費 (Utilities)",
     "communication" => "通信費 (Communication)",
     "software" => "ソフトウェア (Software)",
     "transportation" => "交通費 (Transportation)",

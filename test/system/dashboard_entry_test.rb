@@ -19,7 +19,7 @@ class DashboardEntryTest < ApplicationSystemTestCase
     within("#quick-add-expense") do
       fill_in "内容", with: "コワーキング 6月"
       fill_in "金額（税込）", with: "30000"
-      select "事務所・コワーキング", from: "カテゴリ"
+      select "家賃・事務所", from: "カテゴリ"
       select "オンライン", from: "購入方法"
       click_on "追加"
     end

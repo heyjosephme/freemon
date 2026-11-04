@@ -79,7 +79,7 @@ Expenses need 日付, 内容 and 金額; カテゴリ, 按分率, インボイ�
 
 - Amounts are tax-included yen (税込); `¥`, `円`, commas and full-width digits are all accepted.
 - Dates can be written `2026-07-31`, `2026/7/31` or `2026年7月31日`. Each row is filed under the fiscal year of its date, which must already exist.
-- カテゴリ takes any part of a category's name (`備品`, `器具`, `Equipment`, …). Blank カテゴリ and 按分率 cells mean その他 and 100%.
+- カテゴリ takes any part of a category's name (`備品`, `器具`, `家賃`, `Equipment`, …), plus `光熱費` and `地代家賃`. Blank カテゴリ and 按分率 cells mean その他 and 100%.
 - インボイス is `y` (あり) or `n` (なし); `○` / `×` and `yes` / `no` work too. If you don't track invoices, leave it blank, write `null`, or leave the column out. That leaves the status 未設定, which is also where new expenses in the form start. Only 本則課税 uses it, and it never credits an unset expense; under 簡易課税 and 2割特例 it doesn't matter.
 - 購入方法 is `オンライン` or `店頭`; blank means 店頭・対面. Online purchases get an e-receipt by email, so only in-person ones are flagged (要領収書) in the expense list until a receipt photo is attached.
 - 区分 is `経費` (the default) or `資産`. For an asset, 償却方法 is `全額経費`, `特例`, `一括` or `定額`; leave it blank to pick one from the amount. 定額 needs 耐用年数 in years, e.g. `4` for a PC.

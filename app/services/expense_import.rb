@@ -41,13 +41,14 @@ class ExpenseImport < CsvImport
 
   # Every name a category answers to: its key, its full label as the form shows
   # it, and each part of that label, so 備品・器具 (Equipment) also matches
-  # "備品・器具", "備品", "器具" and "equipment".
+  # "備品・器具", "備品", "器具" and "equipment". Plus a few everyday names:
+  # コワーキング from 家賃・事務所's old label, its account 地代家賃, and 光熱費.
   CATEGORIES = Expense::CATEGORY_LABELS.each_with_object({}) do |(key, label), names|
     japanese, english = label.match(/\A(.+) \((.+)\)\z/).captures
     [ key, label, japanese, *japanese.split("・"), english, *english.split("/") ].each do |name|
       names[name.unicode_normalize(:nfkc).downcase] = key
     end
-  end.freeze
+  end.merge("コワーキング" => "office", "地代家賃" => "office", "光熱費" => "utilities").freeze
 
   INVOICE_YES = %w[y yes ○ ◯ 〇 ✓ ✔ あり 有 対応 true 1].freeze
   INVOICE_NO = %w[n no × ✗ なし 無 非対応 false 0].freeze

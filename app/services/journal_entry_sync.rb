@@ -13,7 +13,8 @@ class JournalEntrySync
     "software" => "504",        # 消耗品費
     "transportation" => "502",  # 旅費交通費
     "books" => "507",           # 新聞図書費
-    "other" => "510"            # 雑費
+    "other" => "510",           # 雑費
+    "utilities" => "506"        # 水道光熱費
   }.freeze
 
   BANK = "102"            # 普通預金

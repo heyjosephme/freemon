@@ -15,6 +15,13 @@ class JournalEntrySyncTest < ActiveSupport::TestCase
                  lines(expense.journal_entries.sole)
   end
 
+  test "水道光熱費 posts to its own account" do
+    bill = create_expense(amount: 9_000, category: :utilities, business_ratio: 30)
+
+    assert_equal [ [ "debit", "事業主貸", 6_300 ], [ "debit", "水道光熱費", 2_700 ], [ "credit", "普通預金", 9_000 ] ],
+                 lines(bill.journal_entries.sole)
+  end
+
   test "a 少額特例 asset is written off as 減価償却費 when bought" do
     asset = create_expense(amount: 300_000, kind: :asset, accounting_method: :small_asset_special)
 
