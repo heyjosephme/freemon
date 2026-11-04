@@ -22,7 +22,7 @@ A personal tax and bookkeeping app for a Japanese freelancer (個人事業主), 
 ## Requirements
 
 - Ruby 4.0.0 (see `.ruby-version`) and SQLite 3
-- Google Chrome, for the one browser-based system test
+- Google Chrome, for the two browser-based system tests
 - Optional: libvips (`brew install vips`), used to analyze uploaded image receipts
 
 ## Getting started (development)

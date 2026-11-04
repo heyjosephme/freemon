@@ -10,7 +10,7 @@ bin/dev                # Start dev server (Rails + Tailwind watcher via foreman)
 bin/rails test         # Run unit/integration tests (test:prepare builds Tailwind first)
 bin/rails test test/services/income_tax_calculator_test.rb      # Run a single test file
 bin/rails test test/services/income_tax_calculator_test.rb:14   # Run a single test by line number
-bin/rails test:system  # Run system tests (needs Chrome for the one JavaScript test)
+bin/rails test:system  # Run system tests (needs Chrome for the two JavaScript tests)
 bin/rubocop            # Lint (rubocop-rails-omakase style)
 bin/rubocop -a         # Lint with auto-correct
 bin/ci                 # Full local CI: setup, rubocop, bundler-audit, importmap audit, brakeman, tests, system tests, seed test
@@ -106,8 +106,8 @@ The B/S carries asset, liability and equity balances over from earlier years; äº
 
 - **Minitest**, parallelized with `number_of_processors` (Rails only forks workers once there are â‰¥50 tests)
 - **No fixture files exist** (`fixtures :all` is configured but loads nothing). Tests create records inline in `setup`, by convention `FiscalYear.create!(year: 2099, ...)`. Service tests assert exact yen amounts with the arithmetic in comments.
-- Tests never load seeds, so whether `JournalEntrySync` runs depends on leftover DB state. A fresh test DB (GitHub Actions, parallel workers) has no `Account` rows and the `Account.any?` guard skips sync, but `bin/ci`'s seed step leaves the seeded accounts in `storage/test.sqlite3`, so later local runs do sync. Tests touching journal entries or the P&L/B/S should create their accounts with `find_or_create_by!(code:)`; that layer has no coverage today.
-- **System tests** (`test/system/`) inherit `ApplicationSystemTestCase` (Selenium + headless Chrome by default). Tests that don't need JavaScript opt into `driven_by :rack_test`, which submits forms exactly as rendered without a browser; `attachments_test.rb` does this. `year_switcher_test.rb` is the one real-browser test. Upload fixtures live in `test/fixtures/files/`.
+- Most tests don't load seeds, so whether `JournalEntrySync` runs depends on leftover DB state. A fresh test DB (GitHub Actions, parallel workers) has no `Account` rows and the `Account.any?` guard skips sync, but `bin/ci`'s seed step leaves the seeded accounts in `storage/test.sqlite3`, so later local runs do sync. Tests of journal entries or the P&L/B/S load the chart of accounts with `load Rails.root.join("db/seeds.rb")` in `setup` (its sample data is development-only), as `journal_entry_sync_test.rb` and `depreciation_test.rb` do.
+- **System tests** (`test/system/`) inherit `ApplicationSystemTestCase` (Selenium + headless Chrome by default). Tests that don't need JavaScript opt into `driven_by :rack_test`, which submits forms exactly as rendered without a browser; most do. `year_switcher_test.rb` and `asset_fields_test.rb` are the real-browser ones. Upload fixtures live in `test/fixtures/files/`.
 - Date-dependent behavior is tested with `travel_to` (see `test/integration/current_year_test.rb`).
 
 ### Personal instance (`bin/freemon`)
