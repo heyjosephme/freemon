@@ -22,6 +22,12 @@ class JournalEntrySyncTest < ActiveSupport::TestCase
                  lines(bill.journal_entries.sole)
   end
 
+  test "接待交際費 posts to its own account" do
+    gift = create_expense(amount: 453_800, category: :entertainment)
+
+    assert_equal [ [ "debit", "接待交際費", 453_800 ], [ "credit", "普通預金", 453_800 ] ], lines(gift.journal_entries.sole)
+  end
+
   test "a 少額特例 asset is written off as 減価償却費 when bought" do
     asset = create_expense(amount: 300_000, kind: :asset, accounting_method: :small_asset_special)
 

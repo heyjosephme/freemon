@@ -70,7 +70,8 @@ class ExpenseImportTest < ActiveSupport::TestCase
 
   test "家賃 and 水道光熱費 answer to everyday names too, and コワーキング still works" do
     { "家賃" => "office", "事務所" => "office", "コワーキング" => "office", "地代家賃" => "office", "Rent" => "office",
-      "水道光熱費" => "utilities", "光熱費" => "utilities", "utilities" => "utilities" }.each do |name, key|
+      "水道光熱費" => "utilities", "光熱費" => "utilities", "utilities" => "utilities",
+      "接待交際費" => "entertainment", "交際費" => "entertainment", "接待" => "entertainment" }.each do |name, key|
       import = ExpenseImport.new("日付,内容,金額,カテゴリ\n2030-08-15,X,1000,#{name}\n")
       assert_equal key, import.rows.first[:category], name
     end

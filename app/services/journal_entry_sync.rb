@@ -14,7 +14,8 @@ class JournalEntrySync
     "transportation" => "502",  # 旅費交通費
     "books" => "507",           # 新聞図書費
     "other" => "510",           # 雑費
-    "utilities" => "506"        # 水道光熱費
+    "utilities" => "506",       # 水道光熱費
+    "entertainment" => "512"    # 接待交際費
   }.freeze
 
   BANK = "102"            # 普通預金

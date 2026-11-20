@@ -19,7 +19,8 @@ class Expense < ApplicationRecord
     transportation: 4,  # 交通費
     books: 5,           # 書籍・学習
     other: 6,           # その他
-    utilities: 7        # 水道光熱費
+    utilities: 7,       # 水道光熱費
+    entertainment: 8    # 接待交際費
   }, default: :other
 
   # Where it was bought. Online purchases get an e-receipt by email, so only
@@ -64,6 +65,7 @@ class Expense < ApplicationRecord
     "equipment" => "備品・器具 (Equipment)",
     "office" => "家賃・事務所 (Rent/Office)",
     "utilities" => "水道光熱費 (Utilities)",
+    "entertainment" => "接待交際費 (Entertainment)",
     "communication" => "通信費 (Communication)",
     "software" => "ソフトウェア (Software)",
     "transportation" => "交通費 (Transportation)",

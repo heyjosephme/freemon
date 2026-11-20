@@ -30,7 +30,8 @@ default_accounts = [
   { code: "508", name: "支払手数料", name_en: "Fees/Commission", account_type: :expense },
   { code: "509", name: "外注費", name_en: "Outsourcing", account_type: :expense },
   { code: "510", name: "雑費", name_en: "Miscellaneous", account_type: :expense },
-  { code: "511", name: "減価償却費", name_en: "Depreciation", account_type: :expense }
+  { code: "511", name: "減価償却費", name_en: "Depreciation", account_type: :expense },
+  { code: "512", name: "接待交際費", name_en: "Entertainment", account_type: :expense }
 ]
 
 default_accounts.each do |attrs|
