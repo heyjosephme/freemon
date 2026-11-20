@@ -57,7 +57,7 @@ class Views::JournalEntries::Form < Views::Base
     end
 
     # Template for adding new lines via Stimulus
-    template_tag(data: { "journal-entry-form-target": "template" }) do
+    template(data: { "journal-entry-form-target": "template" }) do
       render_line_template
     end
   end
