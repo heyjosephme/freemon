@@ -7,12 +7,12 @@ on:
   push:
     branches: [ "**" ]
 
-# Runners are pinned to ubuntu-24.04: ubuntu-latest (26.04) only builds the newest
-# Ruby patch (4.0.10), not the 4.0.0 in .ruby-version. Go back to ubuntu-latest
-# after bumping Ruby.
+# For newer runner images, setup-ruby only builds the latest patch of each Ruby
+# series. If "Set up Ruby" fails with "Unavailable version" after ubuntu-latest
+# moves on, bump .ruby-version (and the Dockerfile's RUBY_VERSION) to that patch.
 jobs:
   scan_ruby:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -30,7 +30,7 @@ jobs:
         run: bin/bundler-audit
       
   scan_js:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -45,7 +45,7 @@ jobs:
         run: bin/importmap audit
 
   lint:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     env:
       RUBOCOP_CACHE_ROOT: tmp/rubocop
     steps:
@@ -58,7 +58,7 @@ jobs:
           bundler-cache: true
 
       - name: Prepare RuboCop cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         env:
           DEPENDENCIES_HASH: ${{ hashFiles('.ruby-version', '**/.rubocop.yml', '**/.rubocop_todo.yml', 'Gemfile.lock') }}
         with:
@@ -71,7 +71,7 @@ jobs:
         run: bin/rubocop -f github
 
   test:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     # services:
     #  redis:
@@ -96,7 +96,7 @@ jobs:
         run: bin/rails db:test:prepare test
 
   system-test:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     # services:
     #  redis:
