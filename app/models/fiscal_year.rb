@@ -14,6 +14,8 @@ class FiscalYear < ApplicationRecord
 
   validates :year, presence: true, uniqueness: true, numericality: { in: 2020..2099, only_integer: true }
   validates :filing_type, presence: true
+  # Optional: the year's goal for #business_profit.
+  validates :business_profit_target, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
 
   after_create :post_depreciation_of_earlier_assets
 
@@ -81,6 +83,15 @@ class FiscalYear < ApplicationRecord
   # year, plus this year's 少額減価償却資産の特例 purchases.
   def depreciation_table_assets
     (depreciable_assets + expenses.small_asset_special.to_a).sort_by { |asset| [ asset.date, asset.id ] }
+  end
+
+  # 売上 − 経費（按分後）, before 青色申告特別控除: the 決算書's 差引金額. Negative in a loss.
+  def business_profit = total_revenue - total_expenses
+
+  # How far #business_profit is towards the target, as a whole percent rounded down
+  # (so 100 means reached). 0 in a loss; nil without a target.
+  def business_profit_progress(profit = business_profit)
+    [ profit, 0 ].max * 100 / business_profit_target if business_profit_target
   end
 
   def total_deductions_amount

@@ -25,6 +25,13 @@ class Views::FiscalYears::Form < Views::Base
           errors_for(:filing_type)
         end
 
+        div(class: "mb-6") do
+          f.label :business_profit_target, "事業利益の目標 (Net business income target)", class: LABEL
+          f.number_field :business_profit_target, min: 1, step: 1, class: input_classes, placeholder: "例: 5000000"
+          p(class: "mt-1 text-sm text-muted") { "任意。売上 − 経費（按分後）の年間目標額（円）。空欄なら目標なし。" }
+          errors_for(:business_profit_target)
+        end
+
         div(class: "flex gap-3") do
           f.submit(@fiscal_year.persisted? ? "更新" : "作成",
             class: Button.classes)

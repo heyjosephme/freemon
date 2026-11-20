@@ -133,6 +133,6 @@ class FiscalYearsController < ApplicationController
   end
 
   def fiscal_year_params
-    params.expect(fiscal_year: [ :year, :filing_type ])
+    params.expect(fiscal_year: [ :year, :filing_type, :business_profit_target ])
   end
 end

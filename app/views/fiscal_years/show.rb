@@ -34,7 +34,10 @@ class Views::FiscalYears::Show < Views::Base
 
     div(class: "grid grid-cols-1 lg:grid-cols-3 items-start gap-6 mb-6") do
       div(class: "lg:col-span-2") { expense_section }
-      revenue_section
+      div(class: "space-y-6") do
+        revenue_section
+        business_profit_section
+      end
     end
 
     div(class: "grid grid-cols-1 md:grid-cols-2 gap-6 mb-6") do
@@ -242,6 +245,61 @@ class Views::FiscalYears::Show < Views::Base
         )
       end
       list_link(fiscal_year_revenues_path(@fiscal_year))
+    end
+  end
+
+  # 売上 − 経費（按分後）: what the business has earned so far, before 青色申告特別控除
+  # (the tax summary applies that).
+  def business_profit_section
+    profit = @fiscal_year.business_profit
+    render Card.new do
+      div(id: "business-profit") do
+        h2(class: "text-base font-semibold text-ink") { "事業利益 (Net business income)" }
+        p(class: "mt-2 font-display text-3xl font-semibold tabular-nums #{profit.negative? ? "text-negative" : "text-ink"}") do
+          plain profit.negative? ? "-#{yen(profit.abs)}" : yen(profit)
+        end
+        p(class: "mt-1 text-xs text-muted") do
+          plain "売上 #{yen(@fiscal_year.total_revenue)} − 経費 #{yen(@fiscal_year.total_expenses)}（按分後）"
+        end
+        p(class: "text-xs text-muted") { "青色申告特別控除前" } if @fiscal_year.blue?
+        business_profit_target(profit)
+      end
+    end
+  end
+
+  # Progress towards the year's target as a meter: one ratio against a limit, with the
+  # figures printed beside it. The fill stops at 100% and the text carries any surplus.
+  def business_profit_target(profit)
+    target = @fiscal_year.business_profit_target
+    unless target
+      p(class: "mt-3 text-sm") { a(href: edit_fiscal_year_path(@fiscal_year), class: LINK) { "目標を設定 →" } }
+      return
+    end
+
+    progress = @fiscal_year.business_profit_progress(profit)
+    reached = profit >= target
+    div(id: "business-profit-target", class: "mt-4 border-t border-line pt-4") do
+      div(class: "flex items-baseline justify-between gap-3 text-sm") do
+        span(class: "text-muted") do
+          plain "目標 (Target) "
+          span(class: "ml-1 font-semibold tabular-nums text-ink") { yen(target) }
+        end
+        span(class: "font-semibold tabular-nums text-ink") { "#{progress}%" }
+      end
+      div(class: "mt-2 h-3 w-full rounded-full bg-primary-soft", role: "meter", aria_label: "事業利益の目標達成率",
+          aria_valuemin: 0, aria_valuemax: 100, aria_valuenow: [ progress, 100 ].min, aria_valuetext: "#{progress}%") do
+        div(class: "h-3 rounded-full bg-primary", style: "width: #{[ progress, 100 ].min}%") if progress.positive?
+      end
+      div(class: "mt-2 flex items-baseline justify-between gap-3 text-sm") do
+        if reached
+          span(class: "font-medium text-positive") { "✓ 目標達成 (Reached)" }
+          span(class: "tabular-nums text-muted") { "+#{yen(profit - target)}" } if profit > target
+        else
+          span(class: "text-muted") { "目標まであと (To go)" }
+          span(class: "font-semibold tabular-nums text-ink") { yen(target - profit) }
+        end
+      end
+      p(class: "mt-2 text-right text-xs") { a(href: edit_fiscal_year_path(@fiscal_year), class: LINK) { "目標を変更" } }
     end
   end
 
