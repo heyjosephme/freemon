@@ -9,7 +9,7 @@ class Components::EmptyState < Components::Base
 
   def view_template
     div(class: "text-center py-12") do
-      p(class: "text-gray-500 mb-4") { @message }
+      p(class: "text-muted mb-4") { @message }
       if @action_text && @action_path
         render Button.new(href: @action_path) { @action_text }
       end

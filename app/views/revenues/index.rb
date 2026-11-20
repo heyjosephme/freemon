@@ -13,7 +13,7 @@ class Views::Revenues::Index < Views::Base
 
     if @revenues.any?
       render Card.new do
-        table(class: "min-w-full divide-y divide-gray-200") do
+        table(class: "min-w-full divide-y divide-line") do
           thead do
             tr do
               th(class: th_classes) { "日付" }
@@ -23,27 +23,27 @@ class Views::Revenues::Index < Views::Base
               th(class: th_classes) { "" }
             end
           end
-          tbody(class: "divide-y divide-gray-100") do
+          tbody(class: "divide-y divide-line") do
             @revenues.each do |revenue|
               copy_target = revenue.next_month_fiscal_year
               tr do
-                td(class: td_classes) { revenue.date.to_s }
+                td(class: "#{td_classes} whitespace-nowrap") { revenue.date.to_s }
                 td(class: td_classes) { revenue.client_name }
                 td(class: "#{td_classes} text-right") { helpers.number_to_currency(revenue.amount, unit: "¥", precision: 0) }
-                td(class: "#{td_classes} text-right text-gray-500") { helpers.number_to_currency(revenue.consumption_tax_component, unit: "¥", precision: 0) }
+                td(class: "#{td_classes} text-right text-muted") { helpers.number_to_currency(revenue.consumption_tax_component, unit: "¥", precision: 0) }
                 td(class: "#{td_classes} text-right") do
                   div(class: "flex gap-3 justify-end") do
-                    a(href: edit_fiscal_year_revenue_path(@fiscal_year, revenue), class: "text-indigo-600 hover:text-indigo-800 text-sm") { "編集" }
+                    a(href: edit_fiscal_year_revenue_path(@fiscal_year, revenue), class: "#{LINK} text-sm whitespace-nowrap") { "編集" }
                     # 複製: a copy a month later, in that month's fiscal year once it exists,
                     # opened as an inline row in the frame below.
                     if copy_target
                       a(href: new_fiscal_year_revenue_path(copy_target, from_revenue: revenue.id), title: "翌月分として複製",
                         data: { turbo_frame: Views::Revenues::CopyRow.frame_id(revenue) },
-                        class: "text-indigo-600 hover:text-indigo-800 text-sm") { "複製" }
+                        class: "#{LINK} text-sm whitespace-nowrap") { "複製" }
                     end
                     button_to "削除", fiscal_year_revenue_path(@fiscal_year, revenue),
                       method: :delete,
-                      class: "text-red-600 hover:text-red-800 text-sm",
+                      class: "text-negative hover:underline underline-offset-4 text-sm whitespace-nowrap cursor-pointer",
                       data: { turbo_confirm: "「#{revenue.client_name}」の売上 ¥#{ActiveSupport::NumberHelper.number_to_delimited(revenue.amount)} を削除しますか？" }
                   end
                 end
@@ -57,10 +57,10 @@ class Views::Revenues::Index < Views::Base
             end
           end
           tfoot do
-            tr(class: "bg-gray-50") do
+            tr(class: "bg-sunken") do
               td(class: "#{td_classes} font-medium", colspan: 2) { "合計" }
               td(class: "#{td_classes} text-right font-bold") { helpers.number_to_currency(@revenues.sum(:amount), unit: "¥", precision: 0) }
-              td(class: "#{td_classes} text-right text-gray-500") { helpers.number_to_currency(@revenues.sum { |r| r.consumption_tax_component }, unit: "¥", precision: 0) }
+              td(class: "#{td_classes} text-right text-muted") { helpers.number_to_currency(@revenues.sum { |r| r.consumption_tax_component }, unit: "¥", precision: 0) }
               td { "" }
             end
           end
@@ -78,10 +78,10 @@ class Views::Revenues::Index < Views::Base
   private
 
   def th_classes
-    "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+    "px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
   end
 
   def td_classes
-    "px-4 py-3 text-sm text-gray-900"
+    "px-4 py-3 text-sm tabular-nums text-ink"
   end
 end

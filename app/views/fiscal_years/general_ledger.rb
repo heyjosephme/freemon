@@ -15,7 +15,7 @@ class Views::FiscalYears::GeneralLedger < Views::Base
     render Card.new do
       form(action: general_ledger_fiscal_year_path(@fiscal_year), method: "get", class: "flex gap-3 items-end", data: { controller: "auto-submit" }) do
         div(class: "flex-1") do
-          label(for: "account_id", class: "block text-sm font-medium text-gray-700 mb-1") { "勘定科目" }
+          label(for: "account_id", class: LABEL) { "勘定科目" }
           select(name: "account_id", id: "account_id", class: input_classes, data: { action: "change->auto-submit#submit" }) do
             @accounts.each do |acc|
               if acc.id == @account&.id
@@ -36,7 +36,7 @@ class Views::FiscalYears::GeneralLedger < Views::Base
         if @journal_entries.any?
           running_balance = 0
 
-          table(class: "min-w-full divide-y divide-gray-200") do
+          table(class: "min-w-full divide-y divide-line") do
             thead do
               tr do
                 th(class: th_classes) { "日付" }
@@ -46,7 +46,7 @@ class Views::FiscalYears::GeneralLedger < Views::Base
                 th(class: "#{th_classes} text-right") { "残高" }
               end
             end
-            tbody(class: "divide-y divide-gray-100") do
+            tbody(class: "divide-y divide-line") do
               @journal_entries.each do |je|
                 lines_for_account = je.lines.select { |l| l.account_id == @account.id }
 
@@ -63,7 +63,7 @@ class Views::FiscalYears::GeneralLedger < Views::Base
                   end
 
                   tr do
-                    td(class: td_classes) { je.date.to_s }
+                    td(class: "#{td_classes} whitespace-nowrap") { je.date.to_s }
                     td(class: td_classes) { je.description }
                     td(class: "#{td_classes} text-right") { debit_amount > 0 ? format_yen(debit_amount) : "" }
                     td(class: "#{td_classes} text-right") { credit_amount > 0 ? format_yen(credit_amount) : "" }
@@ -73,14 +73,14 @@ class Views::FiscalYears::GeneralLedger < Views::Base
               end
             end
             tfoot do
-              tr(class: "bg-gray-50") do
+              tr(class: "bg-sunken") do
                 td(class: "#{td_classes} font-bold", colspan: 4) { "期末残高" }
                 td(class: "#{td_classes} text-right font-bold") { format_yen(running_balance) }
               end
             end
           end
         else
-          p(class: "text-gray-500 text-center py-8") { "この勘定科目の取引はありません。" }
+          p(class: "text-muted text-center py-8") { "この勘定科目の取引はありません。" }
         end
       end
     end
@@ -97,14 +97,14 @@ class Views::FiscalYears::GeneralLedger < Views::Base
   end
 
   def input_classes
-    "block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
+    "block w-full #{INPUT}"
   end
 
   def th_classes
-    "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+    "px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
   end
 
   def td_classes
-    "px-4 py-3 text-sm text-gray-900"
+    "px-4 py-3 text-sm tabular-nums text-ink"
   end
 end

@@ -14,9 +14,10 @@ class Components::Charts::MonthlyCashflow < Phlex::SVG
   PAD_T = 12.0
   PAD_B = 24.0
 
-  REVENUE_COLOR = "#4f46e5"    # indigo-600
-  EXPENSE_COLOR = "#e11d48"    # rose-600
-  CUMULATIVE_COLOR = "#059669" # emerald-600
+  # Colour roles as Tailwind fill/stroke classes (var() doesn't work in SVG
+  # presentation attributes). The cashflow page's legend uses the same roles.
+  REVENUE_FILL = "fill-primary"
+  EXPENSE_FILL = "fill-negative"
 
   def initialize(months:)
     @months = months
@@ -25,31 +26,31 @@ class Components::Charts::MonthlyCashflow < Phlex::SVG
   def view_template
     svg(viewBox: "0 0 #{VB_W.to_i} #{VB_H.to_i}", class: "w-full h-auto", role: "img",
         aria_label: "月次キャッシュフロー") do
-      line(x1: PAD_L, y1: baseline_y, x2: VB_W - PAD_R, y2: baseline_y, stroke: "#d1d5db", stroke_width: "1")
+      line(x1: PAD_L, y1: baseline_y, x2: VB_W - PAD_R, y2: baseline_y, class: "stroke-line-strong", stroke_width: "1")
 
       @months.each_with_index do |m, i|
         c = center_x(i)
-        draw_bar(c - gap / 2 - bar_w, m.revenue, REVENUE_COLOR)
-        draw_bar(c + gap / 2, m.expense, EXPENSE_COLOR)
-        text(x: c.round(2), y: (baseline_y + 16).round(2), fill: "#9ca3af",
+        draw_bar(c - gap / 2 - bar_w, m.revenue, REVENUE_FILL)
+        draw_bar(c + gap / 2, m.expense, EXPENSE_FILL)
+        text(x: c.round(2), y: (baseline_y + 16).round(2), class: "fill-subtle",
              font_size: "11", text_anchor: "middle") { (i + 1).to_s }
       end
 
-      polyline(points: cumulative_points, fill: "none", stroke: CUMULATIVE_COLOR,
+      polyline(points: cumulative_points, fill: "none", class: "stroke-ink",
                stroke_width: "2", stroke_linejoin: "round", stroke_linecap: "round")
       circle(cx: center_x(@months.length - 1).round(2),
-             cy: cumulative_y(@months.last.cumulative).round(2), r: "3.5", fill: CUMULATIVE_COLOR)
+             cy: cumulative_y(@months.last.cumulative).round(2), r: "3.5", class: "fill-ink")
     end
   end
 
   private
 
-  def draw_bar(x, value, color)
+  def draw_bar(x, value, fill_class)
     h = bar_height(value)
     return if h <= 0
 
     rect(x: x.round(2), y: (baseline_y - h).round(2), width: bar_w.round(2),
-         height: h.round(2), fill: color, rx: "1")
+         height: h.round(2), class: fill_class, rx: "1")
   end
 
   def plot_w = VB_W - PAD_L - PAD_R

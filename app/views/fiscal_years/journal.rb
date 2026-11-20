@@ -11,7 +11,7 @@ class Views::FiscalYears::Journal < Views::Base
 
     if @journal_entries.any?
       render Card.new do
-        table(class: "min-w-full divide-y divide-gray-200") do
+        table(class: "min-w-full divide-y divide-line") do
           thead do
             tr do
               th(class: th_classes) { "日付" }
@@ -22,7 +22,7 @@ class Views::FiscalYears::Journal < Views::Base
               th(class: "#{th_classes} text-right") { "貸方金額" }
             end
           end
-          tbody(class: "divide-y divide-gray-200") do
+          tbody(class: "divide-y divide-line") do
             @journal_entries.each do |je|
               render_entry(je)
             end
@@ -42,7 +42,7 @@ class Views::FiscalYears::Journal < Views::Base
     max = [ debits.size, credits.size ].max
 
     max.times do |i|
-      tr(class: i == 0 ? "border-t-2 border-gray-300" : "") do
+      tr(class: i == 0 ? "border-t-2 border-line-strong" : "") do
         td(class: td_classes) { i == 0 ? je.date.to_s : "" }
         td(class: td_classes) { i == 0 ? je.description : "" }
         td(class: td_classes) { debits[i]&.account&.display_name || "" }
@@ -58,10 +58,10 @@ class Views::FiscalYears::Journal < Views::Base
   end
 
   def th_classes
-    "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+    "px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
   end
 
   def td_classes
-    "px-4 py-2 text-sm text-gray-900"
+    "px-4 py-2 text-sm tabular-nums text-ink"
   end
 end

@@ -26,7 +26,7 @@ class Views::Deductions::Index < Views::Base
     if @deductions.any?
       div(class: "mt-6") do
         render Card.new(title: "追加の控除") do
-          table(class: "min-w-full divide-y divide-gray-200") do
+          table(class: "min-w-full divide-y divide-line") do
             thead do
               tr do
                 th(class: th_classes) { "種別" }
@@ -34,17 +34,17 @@ class Views::Deductions::Index < Views::Base
                 th(class: th_classes) { "" }
               end
             end
-            tbody(class: "divide-y divide-gray-100") do
+            tbody(class: "divide-y divide-line") do
               @deductions.each do |deduction|
                 tr do
                   td(class: td_classes) { deduction.deduction_type_label }
                   td(class: "#{td_classes} text-right") { helpers.number_to_currency(deduction.amount, unit: "¥", precision: 0) }
                   td(class: "#{td_classes} text-right") do
                     div(class: "flex gap-3 justify-end") do
-                      a(href: edit_fiscal_year_deduction_path(@fiscal_year, deduction), class: "text-indigo-600 hover:text-indigo-800 text-sm") { "編集" }
+                      a(href: edit_fiscal_year_deduction_path(@fiscal_year, deduction), class: "#{LINK} text-sm whitespace-nowrap") { "編集" }
                       button_to "削除", fiscal_year_deduction_path(@fiscal_year, deduction),
                         method: :delete,
-                        class: "text-red-600 hover:text-red-800 text-sm",
+                        class: "text-negative hover:underline underline-offset-4 text-sm whitespace-nowrap cursor-pointer",
                         data: { turbo_confirm: "「#{deduction.deduction_type_label}」¥#{ActiveSupport::NumberHelper.number_to_delimited(deduction.amount)} を削除しますか？" }
                     end
                   end
@@ -52,7 +52,7 @@ class Views::Deductions::Index < Views::Base
               end
             end
             tfoot do
-              tr(class: "bg-gray-50") do
+              tr(class: "bg-sunken") do
                 td(class: "#{td_classes} font-medium") { "追加控除合計" }
                 td(class: "#{td_classes} text-right font-bold") { helpers.number_to_currency(@deductions.sum(:amount), unit: "¥", precision: 0) }
                 td { "" }
@@ -75,10 +75,10 @@ class Views::Deductions::Index < Views::Base
   private
 
   def th_classes
-    "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+    "px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
   end
 
   def td_classes
-    "px-4 py-3 text-sm text-gray-900"
+    "px-4 py-3 text-sm tabular-nums text-ink"
   end
 end

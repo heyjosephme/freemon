@@ -30,16 +30,16 @@ class Views::FiscalYears::Cashflow < Views::Base
 
   def summary_cards(totals)
     div(class: "grid grid-cols-1 md:grid-cols-3 gap-4 mb-6") do
-      tile("収入 (Cash In)", totals[:revenue], "text-indigo-600")
-      tile("支出 (Cash Out)", totals[:expense], "text-rose-600")
-      tile("差引残高 (Net)", totals[:net], totals[:net] >= 0 ? "text-emerald-600" : "text-rose-600")
+      tile("収入 (Cash In)", totals[:revenue], "text-primary")
+      tile("支出 (Cash Out)", totals[:expense], "text-negative")
+      tile("差引残高 (Net)", totals[:net], totals[:net] >= 0 ? "text-positive" : "text-negative")
     end
   end
 
   def tile(label, amount, color)
     render Card.new do
-      p(class: "text-sm text-gray-500 mb-1") { label }
-      p(class: "text-2xl font-bold #{color}") { yen(amount) }
+      p(class: "text-sm text-muted mb-1") { label }
+      p(class: "font-display font-semibold tabular-nums text-2xl #{color}") { yen(amount) }
     end
   end
 
@@ -48,16 +48,16 @@ class Views::FiscalYears::Cashflow < Views::Base
       render Card.new(title: "月次キャッシュフロー (Monthly Cashflow)") do
         legend
         render Components::Charts::MonthlyCashflow.new(months: @report.months)
-        p(class: "text-xs text-gray-400 mt-3") { "※ 実際の入出金額です（経費は家事按分前の全額）。緑線は累計残高を示します。" }
+        p(class: "text-xs text-subtle mt-3") { "※ 実際の入出金額です（経費は家事按分前の全額）。折れ線は累計残高を示します。" }
       end
     end
   end
 
   def legend
-    div(class: "flex flex-wrap gap-4 mb-4 text-xs text-gray-600") do
-      legend_item("bg-indigo-600", "収入 (Revenue)")
-      legend_item("bg-rose-600", "支出 (Expense)")
-      legend_item("bg-emerald-600", "累計残高 (Cumulative)")
+    div(class: "flex flex-wrap gap-4 mb-4 text-xs text-muted") do
+      legend_item("bg-primary", "収入 (Revenue)")
+      legend_item("bg-negative", "支出 (Expense)")
+      legend_item("bg-ink", "累計残高 (Cumulative)")
     end
   end
 
@@ -71,10 +71,10 @@ class Views::FiscalYears::Cashflow < Views::Base
   def breakdown_cards
     div(class: "grid grid-cols-1 md:grid-cols-2 gap-6") do
       render Card.new(title: "取引先別 収入 (Revenue by Client)") do
-        render Components::Charts::ProportionBars.new(slices: @report.by_client, color: "bg-indigo-500")
+        render Components::Charts::ProportionBars.new(slices: @report.by_client, color: "bg-primary")
       end
       render Card.new(title: "カテゴリ別 経費 (Expenses by Category)") do
-        render Components::Charts::ProportionBars.new(slices: @report.by_category, color: "bg-rose-500")
+        render Components::Charts::ProportionBars.new(slices: @report.by_category, color: "bg-negative")
       end
     end
   end

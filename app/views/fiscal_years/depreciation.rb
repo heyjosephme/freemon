@@ -28,13 +28,13 @@ class Views::FiscalYears::Depreciation < Views::Base
 
     render Card.new do
       div(class: "overflow-x-auto") do
-        table(class: "min-w-full divide-y divide-gray-200") do
+        table(class: "min-w-full divide-y divide-line") do
           thead { header_row }
-          tbody(class: "divide-y divide-gray-100") { @assets.each { |asset| asset_row(asset) } }
+          tbody(class: "divide-y divide-line") { @assets.each { |asset| asset_row(asset) } }
           tfoot { totals_row }
         end
       end
-      p(class: "mt-4 text-xs text-gray-500") do
+      p(class: "mt-4 text-xs text-muted") do
         "少額特例 = 少額減価償却資産の特例（措法28条の2、年300万円まで）。一括償却 = 一括償却資産（3年均等）。定額法は取得月から月割りで、最後に1円を残します。"
       end
     end
@@ -75,7 +75,7 @@ class Views::FiscalYears::Depreciation < Views::Base
   end
 
   def totals_row
-    tr(class: "bg-gray-50 font-semibold") do
+    tr(class: "bg-sunken font-semibold") do
       td(class: td_classes, colspan: 7) { "合計" }
       td(class: number_classes) { yen(@assets.sum { |asset| charge(asset) }) }
       td { "" }
@@ -95,9 +95,9 @@ class Views::FiscalYears::Depreciation < Views::Base
 
   def yen(amount) = "¥#{ActiveSupport::NumberHelper.number_to_delimited(amount)}"
 
-  def th_classes = "px-3 py-3 text-left text-xs font-medium text-gray-500 whitespace-nowrap"
+  def th_classes = "px-3 py-3 text-left text-xs font-medium text-muted whitespace-nowrap"
 
-  def td_classes = "px-3 py-3 text-sm text-gray-900 whitespace-nowrap"
+  def td_classes = "px-3 py-3 text-sm tabular-nums text-ink whitespace-nowrap"
 
   def number_classes = "#{td_classes} text-right tabular-nums"
 end

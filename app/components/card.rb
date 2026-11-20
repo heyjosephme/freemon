@@ -6,9 +6,9 @@ class Components::Card < Components::Base
   end
 
   def view_template(&block)
-    div(class: "bg-white rounded-lg shadow-sm border border-gray-200 p-6") do
+    div(class: "bg-surface rounded-lg border border-line p-6") do
       if @title
-        h2(class: "text-lg font-semibold text-gray-900 mb-4") { @title }
+        h2(class: "text-base font-semibold text-ink mb-4") { @title }
       end
       yield
     end

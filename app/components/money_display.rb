@@ -8,8 +8,9 @@ class Components::MoneyDisplay < Components::Base
 
   def view_template
     classes = [
+      "tabular-nums",
       size_classes,
-      @amount.negative? ? "text-red-600" : "text-gray-900"
+      @amount.negative? ? "text-negative" : "text-ink"
     ].join(" ")
 
     span(class: classes) { formatted_amount }
@@ -30,7 +31,7 @@ class Components::MoneyDisplay < Components::Base
     case @size
     when :sm then "text-sm"
     when :md then "text-base"
-    when :lg then "text-xl font-bold"
+    when :lg then "text-xl font-semibold"
     end
   end
 end

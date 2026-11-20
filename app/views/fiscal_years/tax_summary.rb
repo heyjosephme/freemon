@@ -32,16 +32,16 @@ class Views::FiscalYears::TaxSummary < Views::Base
   def final_result_card
     render Card.new do
       div(class: "text-center") do
-        h2(class: "text-lg font-semibold text-gray-700 mb-2") { "所得税 最終結果 (Income Tax Result)" }
+        h2(class: "text-lg font-semibold text-ink mb-2") { "所得税 最終結果 (Income Tax Result)" }
         if @it[:final_tax] > 0
-          p(class: "text-3xl font-bold text-red-600") { "納付: #{format_money(@it[:final_tax])}" }
-          p(class: "text-sm text-gray-500 mt-1") { "Amount to pay" }
+          p(class: "font-display font-semibold tabular-nums text-3xl text-negative") { "納付: #{format_money(@it[:final_tax])}" }
+          p(class: "text-sm text-muted mt-1") { "Amount to pay" }
         elsif @it[:final_tax] < 0
-          p(class: "text-3xl font-bold text-green-600") { "還付: #{format_money(-@it[:final_tax])}" }
-          p(class: "text-sm text-gray-500 mt-1") { "Refund" }
+          p(class: "font-display font-semibold tabular-nums text-3xl text-positive") { "還付: #{format_money(-@it[:final_tax])}" }
+          p(class: "text-sm text-muted mt-1") { "Refund" }
         else
-          p(class: "text-3xl font-bold text-gray-600") { "¥0" }
-          p(class: "text-sm text-gray-500 mt-1") { "Even" }
+          p(class: "font-display font-semibold tabular-nums text-3xl text-muted") { "¥0" }
+          p(class: "text-sm text-muted mt-1") { "Even" }
         end
       end
     end
@@ -50,7 +50,7 @@ class Views::FiscalYears::TaxSummary < Views::Base
   def income_tax_section
     render Card.new(title: "所得税の計算 (Income Tax Calculation)") do
       # Salary income
-      h3(class: "text-sm font-semibold text-gray-500 uppercase mb-2") { "給与所得 (Salary Income)" }
+      h3(class: "text-sm font-semibold text-muted mb-2") { "給与所得 (Salary Income)" }
       render SummaryRow.new(label: "支払金額 (Gross)") { render MoneyDisplay.new(amount: @it[:gross_salary]) }
       render SummaryRow.new(label: "給与所得控除 (Deduction)", indent: true) { render MoneyDisplay.new(amount: -@it[:salary_deduction]) }
       render SummaryRow.new(label: "給与所得", highlight: true) { render MoneyDisplay.new(amount: @it[:salary_income]) }
@@ -58,7 +58,7 @@ class Views::FiscalYears::TaxSummary < Views::Base
       hr(class: "my-4")
 
       # Business income
-      h3(class: "text-sm font-semibold text-gray-500 uppercase mb-2") { "事業所得 (Business Income)" }
+      h3(class: "text-sm font-semibold text-muted mb-2") { "事業所得 (Business Income)" }
       render SummaryRow.new(label: "事業収入 (Revenue)") { render MoneyDisplay.new(amount: @it[:business_revenue]) }
       render SummaryRow.new(label: "経費 (Expenses)", indent: true) { render MoneyDisplay.new(amount: -@it[:total_expenses]) }
       render SummaryRow.new(label: "青色申告特別控除", indent: true) { render MoneyDisplay.new(amount: -@it[:blue_deduction_applied]) }
@@ -66,7 +66,7 @@ class Views::FiscalYears::TaxSummary < Views::Base
 
       if @it[:loss_offset] != 0
         hr(class: "my-4")
-        h3(class: "text-sm font-semibold text-gray-500 uppercase mb-2") { "損益通算 (Loss Offset)" }
+        h3(class: "text-sm font-semibold text-muted mb-2") { "損益通算 (Loss Offset)" }
         render SummaryRow.new(label: "事業の赤字を給与所得と相殺") { render MoneyDisplay.new(amount: @it[:loss_offset]) }
       end
 
@@ -75,7 +75,7 @@ class Views::FiscalYears::TaxSummary < Views::Base
       # Total income and deductions
       render SummaryRow.new(label: "合計所得金額", highlight: true) { render MoneyDisplay.new(amount: @it[:total_income]) }
 
-      h3(class: "text-sm font-semibold text-gray-500 uppercase mt-4 mb-2") { "所得控除 (Deductions)" }
+      h3(class: "text-sm font-semibold text-muted mt-4 mb-2") { "所得控除 (Deductions)" }
       render SummaryRow.new(label: "基礎控除", indent: true) { render MoneyDisplay.new(amount: @it[:basic_deduction]) }
       render SummaryRow.new(label: "社会保険料控除 (Salary)", indent: true) { render MoneyDisplay.new(amount: @it[:social_insurance_from_salary]) }
       if @it[:additional_deductions] > 0
@@ -114,7 +114,7 @@ class Views::FiscalYears::TaxSummary < Views::Base
       end
 
       if @ct[:non_eligible_tax] > 0
-        p(class: "text-sm text-gray-500 mt-4") do
+        p(class: "text-sm text-muted mt-4") do
           plain "※ インボイスなし・未設定の経費の消費税 "
           render MoneyDisplay.new(amount: @ct[:non_eligible_tax], size: :sm)
           plain " は本則課税では控除できません。"
@@ -124,16 +124,16 @@ class Views::FiscalYears::TaxSummary < Views::Base
   end
 
   def method_card(method_key, amount, recommended)
-    border = recommended ? "border-2 border-indigo-500" : "border border-gray-200"
+    border = recommended ? "border-2 border-primary" : "border border-line"
     div(class: "rounded-lg p-4 text-center #{border}") do
       if recommended
         render Badge.new(text: "おすすめ", color: :indigo)
       end
-      h4(class: "text-sm font-medium text-gray-700 mt-2") { METHOD_LABELS[method_key] }
+      h4(class: "text-sm font-medium text-ink mt-2") { METHOD_LABELS[method_key] }
       if amount < 0
-        p(class: "text-xl font-bold text-green-600 mt-1") { "還付 #{format_money(-amount)}" }
+        p(class: "text-xl font-semibold tabular-nums text-positive mt-1") { "還付 #{format_money(-amount)}" }
       else
-        p(class: "text-xl font-bold text-gray-900 mt-1") { format_money(amount) }
+        p(class: "text-xl font-semibold tabular-nums text-ink mt-1") { format_money(amount) }
       end
     end
   end

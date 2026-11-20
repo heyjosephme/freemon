@@ -22,7 +22,7 @@ class Views::RecurringExpenses::Index < Views::Base
 
     render Card.new do
       div(class: "overflow-x-auto") do
-        table(class: "min-w-full divide-y divide-gray-200") do
+        table(class: "min-w-full divide-y divide-line") do
           thead do
             tr do
               th(class: th_classes) { "内容" }
@@ -34,12 +34,12 @@ class Views::RecurringExpenses::Index < Views::Base
               th(class: th_classes) { "" }
             end
           end
-          tbody(class: "divide-y divide-gray-100") do
+          tbody(class: "divide-y divide-line") do
             @recurring_expenses.each { |template| template_row(template) }
           end
         end
       end
-      p(class: "mt-4 text-xs text-gray-500") do
+      p(class: "mt-4 text-xs text-muted") do
         "支払日が今月までで未登録の月は、その年のダッシュボードの経費欄に出ます。登録すると通常の経費になり、あとで定期経費を変えても登録済みの経費は変わりません。"
       end
     end
@@ -60,10 +60,10 @@ class Views::RecurringExpenses::Index < Views::Base
       td(class: td_classes) { template.period_label }
       td(class: "#{td_classes} text-right") do
         div(class: "flex gap-3 justify-end") do
-          a(href: edit_recurring_expense_path(template), class: "text-indigo-600 hover:text-indigo-800 text-sm") { "編集" }
+          a(href: edit_recurring_expense_path(template), class: "#{LINK} text-sm whitespace-nowrap") { "編集" }
           button_to "削除", recurring_expense_path(template),
             method: :delete,
-            class: "text-red-600 hover:text-red-800 text-sm",
+            class: "text-negative hover:underline underline-offset-4 text-sm whitespace-nowrap cursor-pointer",
             data: { turbo_confirm: "定期経費「#{template.description}」を削除しますか？登録済みの経費は残ります。" }
         end
       end
@@ -73,10 +73,10 @@ class Views::RecurringExpenses::Index < Views::Base
   def yen(amount) = "¥#{ActiveSupport::NumberHelper.number_to_delimited(amount)}"
 
   def th_classes
-    "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+    "px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
   end
 
   def td_classes
-    "px-4 py-3 text-sm text-gray-900 whitespace-nowrap"
+    "px-4 py-3 text-sm tabular-nums text-ink whitespace-nowrap"
   end
 end

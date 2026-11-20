@@ -26,7 +26,7 @@ class Views::FiscalYears::IncomeStatement < Views::Base
 
     render Card.new do
       # Revenue section
-      h3(class: "text-sm font-semibold text-gray-500 uppercase mb-3") { "収益の部 (Revenue)" }
+      h3(class: "text-sm font-semibold text-muted mb-3") { "収益の部 (Revenue)" }
       revenue_totals.each do |account, amount|
         next if amount == 0
         render SummaryRow.new(label: account.display_name, indent: true) do
@@ -40,7 +40,7 @@ class Views::FiscalYears::IncomeStatement < Views::Base
       hr(class: "my-4")
 
       # Expense section
-      h3(class: "text-sm font-semibold text-gray-500 uppercase mb-3") { "費用の部 (Expenses)" }
+      h3(class: "text-sm font-semibold text-muted mb-3") { "費用の部 (Expenses)" }
       expense_totals.each do |account, amount|
         next if amount == 0
         render SummaryRow.new(label: account.display_name, indent: true) do
@@ -55,8 +55,8 @@ class Views::FiscalYears::IncomeStatement < Views::Base
 
       # Net income
       div(class: "text-center py-4") do
-        h3(class: "text-lg font-semibold text-gray-700") { "当期純利益 (Net Income)" }
-        p(class: "text-3xl font-bold mt-2 #{net_income >= 0 ? 'text-green-600' : 'text-red-600'}") do
+        h3(class: "text-lg font-semibold text-ink") { "当期純利益 (Net Income)" }
+        p(class: "font-display font-semibold tabular-nums text-3xl mt-2 #{net_income >= 0 ? 'text-positive' : 'text-negative'}") do
           plain format_yen(net_income)
         end
       end

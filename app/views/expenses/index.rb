@@ -13,7 +13,7 @@ class Views::Expenses::Index < Views::Base
 
     if @expenses.any?
       render Card.new do
-        table(class: "min-w-full divide-y divide-gray-200") do
+        table(class: "min-w-full divide-y divide-line") do
           thead do
             tr do
               th(class: th_classes) { "日付" }
@@ -25,25 +25,25 @@ class Views::Expenses::Index < Views::Base
               th(class: th_classes) { "" }
             end
           end
-          tbody(class: "divide-y divide-gray-100") do
+          tbody(class: "divide-y divide-line") do
             @expenses.each do |expense|
               tr do
-                td(class: td_classes) { expense.date.to_s }
+                td(class: "#{td_classes} whitespace-nowrap") { expense.date.to_s }
                 td(class: td_classes) do
                   plain expense.description
                   if expense.asset?
-                    span(class: "ml-2 text-xs text-indigo-600") { "(#{expense.asset_summary})" }
+                    span(class: "ml-2 text-xs text-primary") { "(#{expense.asset_summary})" }
                   elsif expense.high_value?
-                    span(class: "ml-2 text-xs text-yellow-600") { "(10万円以上: 資産？)" }
+                    span(class: "ml-2 text-xs text-warning") { "(10万円以上: 資産？)" }
                   end
                   if expense.invoice_eligible == false # unset (nil) isn't flagged
-                    span(class: "ml-2 text-xs text-red-500") { "(非インボイス)" }
+                    span(class: "ml-2 text-xs text-warning") { "(非インボイス)" }
                   end
-                  span(class: "ml-2 text-xs text-gray-400") { "(定期)" } if expense.recurring_expense_id
+                  span(class: "ml-2 text-xs text-subtle") { "(定期)" } if expense.recurring_expense_id
                   if expense.online?
-                    span(class: "ml-2 text-xs text-gray-400") { "(オンライン)" }
+                    span(class: "ml-2 text-xs text-subtle") { "(オンライン)" }
                   elsif expense.receipt_missing?
-                    span(class: "ml-2 text-xs text-amber-600") { "(要領収書)" }
+                    span(class: "ml-2 text-xs text-warning") { "(要領収書)" }
                   end
                 end
                 td(class: td_classes) do
@@ -54,10 +54,10 @@ class Views::Expenses::Index < Views::Base
                 td(class: "#{td_classes} text-right") { yen(expense.deduction_this_year) }
                 td(class: "#{td_classes} text-right") do
                   div(class: "flex gap-3 justify-end") do
-                    a(href: edit_fiscal_year_expense_path(@fiscal_year, expense), class: "text-indigo-600 hover:text-indigo-800 text-sm") { "編集" }
+                    a(href: edit_fiscal_year_expense_path(@fiscal_year, expense), class: "#{LINK} text-sm whitespace-nowrap") { "編集" }
                     button_to "削除", fiscal_year_expense_path(@fiscal_year, expense),
                       method: :delete,
-                      class: "text-red-600 hover:text-red-800 text-sm",
+                      class: "text-negative hover:underline underline-offset-4 text-sm whitespace-nowrap cursor-pointer",
                       data: { turbo_confirm: "「#{expense.description}」¥#{ActiveSupport::NumberHelper.number_to_delimited(expense.amount)} を削除しますか？" }
                   end
                 end
@@ -69,14 +69,14 @@ class Views::Expenses::Index < Views::Base
             carried = @fiscal_year.total_expenses - @expenses.sum(&:deduction_this_year)
             if carried.positive?
               tr do
-                td(class: "#{td_classes} text-gray-500", colspan: 5) do
-                  a(href: depreciation_fiscal_year_path(@fiscal_year), class: "hover:text-indigo-600") { "前年以前に取得した資産の減価償却" }
+                td(class: "#{td_classes} text-muted", colspan: 5) do
+                  a(href: depreciation_fiscal_year_path(@fiscal_year), class: "hover:text-primary") { "前年以前に取得した資産の減価償却" }
                 end
                 td(class: "#{td_classes} text-right") { yen(carried) }
                 td { "" }
               end
             end
-            tr(class: "bg-gray-50") do
+            tr(class: "bg-sunken") do
               td(class: "#{td_classes} font-medium", colspan: 3) { "合計" }
               td(class: "#{td_classes} text-right font-bold") { yen(@expenses.sum(:amount)) }
               td { "" }
@@ -100,10 +100,10 @@ class Views::Expenses::Index < Views::Base
   def yen(amount) = "¥#{ActiveSupport::NumberHelper.number_to_delimited(amount)}"
 
   def th_classes
-    "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+    "px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
   end
 
   def td_classes
-    "px-4 py-3 text-sm text-gray-900"
+    "px-4 py-3 text-sm tabular-nums text-ink"
   end
 end

@@ -47,7 +47,7 @@ class Views::FiscalYears::BalanceSheet < Views::Base
 
       # Right: Liabilities + Equity
       render Card.new(title: "負債・資本の部 (Liabilities & Equity)") do
-        h4(class: "text-xs font-semibold text-gray-500 uppercase mb-2") { "負債 (Liabilities)" }
+        h4(class: "text-xs font-semibold text-muted mb-2") { "負債 (Liabilities)" }
         account_rows(liability_totals)
         render SummaryRow.new(label: "負債合計") do
           render MoneyDisplay.new(amount: total_liabilities)
@@ -55,7 +55,7 @@ class Views::FiscalYears::BalanceSheet < Views::Base
 
         hr(class: "my-3")
 
-        h4(class: "text-xs font-semibold text-gray-500 uppercase mb-2") { "資本 (Equity)" }
+        h4(class: "text-xs font-semibold text-muted mb-2") { "資本 (Equity)" }
         account_rows(equity_totals)
         render SummaryRow.new(label: "元入金（期首） (Opening Capital)", indent: true) do
           render MoneyDisplay.new(amount: opening_capital)
@@ -76,12 +76,12 @@ class Views::FiscalYears::BalanceSheet < Views::Base
       render Card.new do
         div(class: "text-center py-2") do
           if balanced
-            p(class: "text-green-600 font-medium") { "資産 = 負債 + 資本 ✓ (Balance checks out)" }
+            p(class: "text-positive font-medium") { "資産 = 負債 + 資本 ✓ (Balance checks out)" }
           else
-            p(class: "text-red-600 font-medium") do
+            p(class: "text-negative font-medium") do
               plain "資産 (#{format_yen(total_assets)}) ≠ 負債+資本 (#{format_yen(total_liabilities_and_equity)})"
             end
-            p(class: "text-sm text-gray-500 mt-1") { "差額: #{format_yen(total_assets - total_liabilities_and_equity)}" }
+            p(class: "text-sm text-muted mt-1") { "差額: #{format_yen(total_assets - total_liabilities_and_equity)}" }
           end
         end
       end

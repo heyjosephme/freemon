@@ -52,11 +52,11 @@ export default class extends Controller {
     const format = (n) => "¥" + n.toLocaleString()
 
     if (balanced) {
-      this.balanceTarget.innerHTML = `<span class="text-green-600">借方 ${format(debits)} = 貸方 ${format(credits)} ✓</span>`
+      this.balanceTarget.innerHTML = `<span class="text-positive">借方 ${format(debits)} = 貸方 ${format(credits)} ✓</span>`
     } else if (debits > 0 || credits > 0) {
-      this.balanceTarget.innerHTML = `<span class="text-red-600">借方 ${format(debits)} ≠ 貸方 ${format(credits)}</span>`
+      this.balanceTarget.innerHTML = `<span class="text-negative">借方 ${format(debits)} ≠ 貸方 ${format(credits)}</span>`
     } else {
-      this.balanceTarget.innerHTML = `<span class="text-gray-500">借方・貸方の合計が一致する必要があります。</span>`
+      this.balanceTarget.innerHTML = `<span class="text-muted">借方・貸方の合計が一致する必要があります。</span>`
     }
   }
 }

@@ -13,7 +13,7 @@ class Views::JournalEntries::Index < Views::Base
 
     if @journal_entries.any?
       render Card.new do
-        table(class: "min-w-full divide-y divide-gray-200") do
+        table(class: "min-w-full divide-y divide-line") do
           thead do
             tr do
               th(class: th_classes) { "日付" }
@@ -25,7 +25,7 @@ class Views::JournalEntries::Index < Views::Base
               th(class: th_classes) { "" }
             end
           end
-          tbody(class: "divide-y divide-gray-100") do
+          tbody(class: "divide-y divide-line") do
             @journal_entries.each do |je|
               render_journal_entry(je)
             end
@@ -51,11 +51,11 @@ class Views::JournalEntries::Index < Views::Base
     max_lines.times do |i|
       tr do
         if i == 0
-          td(class: td_classes, rowspan: max_lines > 1 ? max_lines : nil) { je.date.to_s }
+          td(class: "#{td_classes} whitespace-nowrap", rowspan: max_lines > 1 ? max_lines : nil) { je.date.to_s }
           td(class: td_classes, rowspan: max_lines > 1 ? max_lines : nil) do
             plain je.description
             unless je.manual?
-              span(class: "ml-1 text-xs text-gray-400") { "(自動)" }
+              span(class: "ml-1 text-xs text-subtle") { "(自動)" }
             end
           end
         end
@@ -71,7 +71,7 @@ class Views::JournalEntries::Index < Views::Base
         if i == 0
           td(class: "#{td_classes} text-right", rowspan: max_lines > 1 ? max_lines : nil) do
             if je.manual?
-              a(href: edit_fiscal_year_journal_entry_path(@fiscal_year, je), class: "text-indigo-600 hover:text-indigo-800 text-sm") { "編集" }
+              a(href: edit_fiscal_year_journal_entry_path(@fiscal_year, je), class: "#{LINK} text-sm whitespace-nowrap") { "編集" }
             end
           end
         end
@@ -84,10 +84,10 @@ class Views::JournalEntries::Index < Views::Base
   end
 
   def th_classes
-    "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+    "px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
   end
 
   def td_classes
-    "px-4 py-3 text-sm text-gray-900"
+    "px-4 py-3 text-sm tabular-nums text-ink"
   end
 end

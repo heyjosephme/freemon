@@ -2,10 +2,10 @@
 
 class Components::Alert < Components::Base
   STYLES = {
-    info: "bg-blue-50 text-blue-800 border-blue-200",
-    success: "bg-green-50 text-green-800 border-green-200",
-    warning: "bg-yellow-50 text-yellow-800 border-yellow-200",
-    error: "bg-red-50 text-red-800 border-red-200"
+    info: "bg-info-soft text-info border-info-line",
+    success: "bg-positive-soft text-positive border-positive-line",
+    warning: "bg-warning-soft text-warning border-warning-line",
+    error: "bg-negative-soft text-negative border-negative-line"
   }.freeze
 
   def initialize(message:, type: :info)
@@ -17,7 +17,7 @@ class Components::Alert < Components::Base
     div(class: "rounded-md border p-4 mb-4 #{STYLES[@type]}", data: { controller: "flash" }) do
       div(class: "flex justify-between items-center") do
         p(class: "text-sm") { @message }
-        button(class: "text-current opacity-50 hover:opacity-100", data: { action: "flash#dismiss" }) { "✕" }
+        button(class: "text-current opacity-60 hover:opacity-100 cursor-pointer", aria_label: "閉じる", data: { action: "flash#dismiss" }) { "✕" }
       end
     end
   end

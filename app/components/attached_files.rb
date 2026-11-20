@@ -14,16 +14,16 @@ class Components::AttachedFiles < Components::Base
     return if @attachments.empty?
 
     div(class: "mb-4") do
-      p(class: "text-sm font-medium text-gray-700 mb-2") { "添付済みファイル:" }
+      p(class: "text-sm font-medium text-ink mb-2") { "添付済みファイル:" }
       @attachments.each do |attachment|
-        label(class: "flex items-center gap-2 text-sm text-gray-600 mb-1") do
+        label(class: "flex items-center gap-2 text-sm text-muted mb-1") do
           input(type: "checkbox", name: @field_name, value: attachment.signed_id, checked: true,
-                class: "h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600")
+                class: CHECKBOX)
           span { attachment.filename.to_s }
-          span(class: "text-gray-400") { "(#{ActiveSupport::NumberHelper.number_to_human_size(attachment.byte_size)})" }
+          span(class: "text-subtle") { "(#{ActiveSupport::NumberHelper.number_to_human_size(attachment.byte_size)})" }
         end
       end
-      p(class: "mt-1 text-sm text-gray-500") { "チェックを外して保存すると削除されます。" }
+      p(class: "mt-1 text-sm text-muted") { "チェックを外して保存すると削除されます。" }
     end
   end
 end

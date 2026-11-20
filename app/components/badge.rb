@@ -1,13 +1,14 @@
 # frozen_string_literal: true
 
 class Components::Badge < Components::Base
+  # Keyed by the old palette names; each maps to a status role.
   COLORS = {
-    green: "bg-green-100 text-green-800",
-    red: "bg-red-100 text-red-800",
-    blue: "bg-blue-100 text-blue-800",
-    gray: "bg-gray-100 text-gray-800",
-    yellow: "bg-yellow-100 text-yellow-800",
-    indigo: "bg-indigo-100 text-indigo-800"
+    green: "bg-positive-soft text-positive",
+    red: "bg-negative-soft text-negative",
+    blue: "bg-info-soft text-info",
+    gray: "bg-sunken text-muted",
+    yellow: "bg-warning-soft text-warning",
+    indigo: "bg-primary-soft text-primary"
   }.freeze
 
   def initialize(text:, color: :gray)
@@ -16,7 +17,7 @@ class Components::Badge < Components::Base
   end
 
   def view_template
-    span(class: "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium #{COLORS[@color]}") do
+    span(class: "inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium #{COLORS[@color]}") do
       @text
     end
   end

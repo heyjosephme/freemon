@@ -33,13 +33,13 @@ class Views::FiscalYears::Index < Views::Base
         render Card.new do
           div(class: "flex items-center justify-between") do
             div do
-              h3(class: "text-lg font-semibold text-gray-900") { "#{fy.year}年" }
+              h3(class: "font-display text-xl font-semibold text-ink mb-1") { "#{fy.year}年" }
               div(class: "flex gap-2") do
                 render Badge.new(text: fy.filing_type_label, color: fy.white? ? :gray : :indigo)
                 render Badge.new(text: "今年", color: :green) if fy.year == FiscalYear.current_year
               end
             end
-            div(class: "text-right text-sm text-gray-500") do
+            div(class: "text-right text-sm tabular-nums text-muted") do
               p { "売上: #{ActiveSupport::NumberHelper.number_to_currency(fy.total_revenue, unit: '¥', precision: 0)}" }
               p { "経費: #{ActiveSupport::NumberHelper.number_to_currency(fy.total_expenses, unit: '¥', precision: 0)}" }
             end

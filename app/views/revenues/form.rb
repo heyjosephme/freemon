@@ -19,19 +19,19 @@ class Views::Revenues::Form < Views::Base
         field(f, :date, "日付 (Date)", type: :date_field)
 
         div(class: "mb-4") do
-          f.label :invoices, "請求書・証憑 (Invoices/Documents)", class: "block text-sm font-medium text-gray-700 mb-1"
+          f.label :invoices, "請求書・証憑 (Invoices/Documents)", class: LABEL
           f.file_field :invoices, multiple: true, accept: ".pdf,.png,.jpg,.jpeg",
-            class: "block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-          p(class: "mt-1 text-sm text-gray-500") { "PDF, PNG, JPG (複数選択可)" }
+            class: "block w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:cursor-pointer file:bg-primary-soft file:text-primary hover:file:bg-primary-line"
+          p(class: "mt-1 text-sm text-muted") { "PDF, PNG, JPG (複数選択可)" }
         end
 
         render AttachedFiles.new(attachments: @revenue.invoices, field_name: "revenue[invoices][]")
 
         div(class: "flex gap-3 pt-4") do
           f.submit(@revenue.persisted? ? "更新" : "登録",
-            class: "inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 cursor-pointer")
+            class: Button.classes)
           a(href: @back_path,
-            class: "inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50") { "キャンセル" }
+            class: Button.classes(variant: :secondary)) { "キャンセル" }
         end
       end
     end
@@ -41,15 +41,15 @@ class Views::Revenues::Form < Views::Base
 
   def field(f, attr, label, type:, **opts)
     div(class: "mb-4") do
-      f.label attr, label, class: "block text-sm font-medium text-gray-700 mb-1"
+      f.label attr, label, class: LABEL
       f.send(type, attr, class: input_classes, **opts)
       @revenue.errors[attr].each do |error|
-        p(class: "mt-1 text-sm text-red-600") { error }
+        p(class: "mt-1 text-sm text-negative") { error }
       end
     end
   end
 
   def input_classes
-    "block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+    "block w-full #{INPUT}"
   end
 end

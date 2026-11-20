@@ -40,7 +40,15 @@ Views and components are Ruby classes using Phlex, not ERB templates. ERB is onl
 ### Asset Pipeline
 
 - **Propshaft** (not Sprockets)
-- **Tailwind CSS v4** via `tailwindcss-rails` gem (standalone CLI, no npm). CSS-first config: the entry point `app/assets/tailwind/application.css` is just `@import "tailwindcss";` and there is no `tailwind.config.js`. Tailwind only emits classes it finds verbatim in source, so build class strings from complete literal class names and use inline `style` for computed values (see `ProportionBars`).
+- **Tailwind CSS v4** via `tailwindcss-rails` gem (standalone CLI, no npm). CSS-first config: the entry point `app/assets/tailwind/application.css` is `@import "tailwindcss";` plus the design tokens below, and there is no `tailwind.config.js`. Tailwind only emits classes it finds verbatim in source, so build class strings from complete literal class names and use inline `style` for computed values (see `ProportionBars`).
+- **Design tokens**: `application.css` defines colour roles as CSS variables on `:root` and exposes them through `@theme inline`. Views use role classes only, never palette shades (`bg-white`, `text-gray-500`, `bg-indigo-600`) or hex colours:
+  - surfaces `bg-canvas` (page), `bg-surface` (cards, inputs), `bg-sunken` (hover, total rows), `border-line`, `border-line-strong` (input edges);
+  - text `text-ink`, `text-muted`, `text-subtle`;
+  - brand `primary` (petrol teal), with `-hover`, `-soft`, `-line` and `text-on-primary`;
+  - status `positive`, `negative`, `warning`, `info`, each with `-soft` (background) and `-line` (border). Income and refunds are positive, expenses and tax to pay negative, and expense flags (要領収書, 非インボイス, 資産？) warning.
+  - `font-display` (Mincho) is for page titles and headline figures; everything else is `font-sans` (Hiragino). Both are system fonts, so the app makes no outside requests. Amounts get `tabular-nums`.
+  - Cards have a border and no shadow. The SVG chart colours with `fill-*` / `stroke-*` role classes, because `var()` doesn't work in SVG presentation attributes.
+  - `Components::Base` holds the class strings for hand-built controls (`INPUT`, `LABEL`, `LINK`, `CHECKBOX`), and `Button.classes(variant:, size:)` styles `f.submit` and `button_to`.
 - **JavaScript** via import maps only (`importmap-rails`). Controllers in `app/javascript/controllers/`. No webpack/esbuild/bundler.
 - **Hotwire**: Turbo + Stimulus included
 

@@ -28,9 +28,9 @@ class Views::RecurringExpenses::Form < Views::Base
 
         div(class: "flex gap-3 pt-4") do
           f.submit(@recurring_expense.persisted? ? "更新" : "追加",
-            class: "inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 cursor-pointer")
+            class: Button.classes)
           a(href: recurring_expenses_path,
-            class: "inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50") { "キャンセル" }
+            class: Button.classes(variant: :secondary)) { "キャンセル" }
         end
       end
     end
@@ -42,25 +42,25 @@ class Views::RecurringExpenses::Form < Views::Base
   # The blank value submits the list even with every box unchecked.
   def skipped_months
     fieldset(class: "mb-4") do
-      legend(class: "block text-sm font-medium text-gray-700 mb-1") { "スキップした月 (Skipped)" }
+      legend(class: LABEL) { "スキップした月 (Skipped)" }
       input(type: "hidden", name: "recurring_expense[skipped_months][]", value: "")
       div(class: "flex flex-wrap gap-x-4 gap-y-1") do
         @recurring_expense.skipped_months.each do |month|
           date = Date.iso8601(month)
-          label(class: "inline-flex items-center gap-1.5 text-sm text-gray-700") do
+          label(class: "inline-flex items-center gap-1.5 text-sm text-ink") do
             input(type: "checkbox", name: "recurring_expense[skipped_months][]", value: month, checked: true,
-                  class: "rounded border-gray-300 text-indigo-600")
+                  class: CHECKBOX)
             plain "#{date.year}年#{date.month}月"
           end
         end
       end
-      p(class: "mt-1 text-sm text-gray-500") { "チェックを外して更新すると、その月がまたダッシュボードに出ます。" }
+      p(class: "mt-1 text-sm text-muted") { "チェックを外して更新すると、その月がまたダッシュボードに出ます。" }
     end
   end
 
   def field(f, attr, label, type:, hint: nil, **opts)
     div(class: "mb-4") do
-      f.label attr, label, class: "block text-sm font-medium text-gray-700 mb-1"
+      f.label attr, label, class: LABEL
       f.send(type, attr, class: input_classes, **opts)
       field_notes(attr, hint)
     end
@@ -68,20 +68,20 @@ class Views::RecurringExpenses::Form < Views::Base
 
   def select_field(f, attr, label, choices, hint: nil)
     div(class: "mb-4") do
-      f.label attr, label, class: "block text-sm font-medium text-gray-700 mb-1"
+      f.label attr, label, class: LABEL
       f.select attr, choices, {}, class: input_classes
       field_notes(attr, hint)
     end
   end
 
   def field_notes(attr, hint)
-    p(class: "mt-1 text-sm text-gray-500") { hint } if hint
+    p(class: "mt-1 text-sm text-muted") { hint } if hint
     @recurring_expense.errors[attr].each do |error|
-      p(class: "mt-1 text-sm text-red-600") { error }
+      p(class: "mt-1 text-sm text-negative") { error }
     end
   end
 
   def input_classes
-    "block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+    "block w-full #{INPUT}"
   end
 end

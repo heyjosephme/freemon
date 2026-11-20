@@ -29,14 +29,14 @@ class Views::FiscalYears::TaxReserve < Views::Base
   def hero
     render Card.new do
       div(class: "text-center py-2") do
-        h2(class: "text-sm font-semibold text-gray-500 uppercase mb-2") { "納税準備の目安 (Recommended Reserve)" }
-        p(class: "text-4xl font-bold text-indigo-700") { yen(@reserve[:total]) }
+        h2(class: "text-sm font-semibold text-muted mb-2") { "納税準備の目安 (Recommended Reserve)" }
+        p(class: "font-display font-semibold tabular-nums text-4xl text-primary") { yen(@reserve[:total]) }
         if @reserve[:revenue].positive?
-          p(class: "text-sm text-gray-500 mt-3") do
+          p(class: "text-sm text-muted mt-3") do
             plain "売上の約 "
-            span(class: "font-semibold text-gray-700") { "#{@reserve[:reserve_rate]}%" }
+            span(class: "font-semibold text-ink") { "#{@reserve[:reserve_rate]}%" }
             plain " ／ 毎月の積立目安 約 "
-            span(class: "font-semibold text-gray-700") { yen(@reserve[:monthly]) }
+            span(class: "font-semibold text-ink") { yen(@reserve[:monthly]) }
           end
         end
       end
@@ -46,21 +46,21 @@ class Views::FiscalYears::TaxReserve < Views::Base
   def breakdown
     render Card.new(title: "内訳 (Breakdown)") do
       @reserve[:components].each do |component|
-        div(class: "flex justify-between items-center py-3 border-b border-gray-100") do
+        div(class: "flex justify-between items-center py-3 border-b border-line") do
           div do
-            p(class: "text-sm text-gray-700") { component.label }
-            p(class: "text-xs text-gray-400 mt-0.5") { "納付時期: #{component.timing}" }
+            p(class: "text-sm text-ink") { component.label }
+            p(class: "text-xs text-subtle mt-0.5") { "納付時期: #{component.timing}" }
           end
           render MoneyDisplay.new(amount: component.amount)
         end
       end
 
-      div(class: "flex justify-between items-center pt-3 mt-2 border-t-2 border-gray-900") do
-        span(class: "text-base font-bold text-gray-900") { "合計 (Total)" }
+      div(class: "flex justify-between items-center pt-3 mt-2 border-t-2 border-ink") do
+        span(class: "text-base font-bold text-ink") { "合計 (Total)" }
         render MoneyDisplay.new(amount: @reserve[:total], size: :lg)
       end
 
-      p(class: "text-xs text-gray-500 mt-3") do
+      p(class: "text-xs text-muted mt-3") do
         plain "※ 消費税は#{METHOD_LABELS[@reserve[:recommended_consumption_method]]}（最も有利な方式）で計算しています。"
       end
     end
@@ -68,7 +68,7 @@ class Views::FiscalYears::TaxReserve < Views::Base
 
   def notes
     render Card.new(title: "前提・注意 (Assumptions)") do
-      ul(class: "list-disc list-inside text-sm text-gray-600 space-y-1") do
+      ul(class: "list-disc list-inside text-sm text-muted space-y-1") do
         li { "住民税は所得割10% + 均等割¥5,000、基礎控除¥430,000での概算です（自治体により異なります）。" }
         li { "国民健康保険は東京23区の標準的な料率による概算です。介護分（40〜64歳）は含みません。" }
         li { "前年実績に基づく予定納税（所得税・消費税の中間納付）は含みません。" }

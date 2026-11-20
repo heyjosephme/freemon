@@ -1,1 +1,106 @@
 @import "tailwindcss";
+
+/*
+ * Design tokens. Views name a colour by its role (bg-surface, text-muted,
+ * text-negative), never by a palette shade (bg-white, text-gray-500), so the
+ * look changes here and nowhere else.
+ *
+ * Each role is a CSS variable on :root, exposed to Tailwind below. A dark
+ * theme is a second set of values for the same variables.
+ *
+ *   Surfaces  canvas (page) · surface (cards, inputs) · sunken (hover, wells)
+ *             line (dividers, card edges) · line-strong (input edges)
+ *   Text      ink · muted (labels, secondary) · subtle (dates, placeholders)
+ *   Brand     primary (+ -hover, -soft, -line) · on-primary (text on primary)
+ *   Status    positive · negative · warning · info, each with
+ *             -soft (background) and -line (border); the bare name is the text
+ *             colour and passes AA contrast on both surface and its own -soft.
+ */
+:root {
+  --canvas: oklch(0.972 0.004 200);
+  --surface: oklch(0.997 0.002 200);
+  --sunken: oklch(0.95 0.006 200);
+  --line: oklch(0.905 0.008 200);
+  --line-strong: oklch(0.8 0.012 200);
+
+  --ink: oklch(0.24 0.02 215);
+  --muted: oklch(0.46 0.018 215);
+  --subtle: oklch(0.56 0.014 215);
+
+  --primary: oklch(0.44 0.075 210);
+  --primary-hover: oklch(0.36 0.065 210);
+  --primary-soft: oklch(0.95 0.025 205);
+  --primary-line: oklch(0.86 0.045 205);
+  --on-primary: oklch(0.99 0.004 200);
+
+  --positive: oklch(0.46 0.11 150);
+  --positive-soft: oklch(0.955 0.04 150);
+  --positive-line: oklch(0.86 0.07 150);
+
+  --negative: oklch(0.5 0.17 27);
+  --negative-soft: oklch(0.955 0.025 27);
+  --negative-line: oklch(0.86 0.06 27);
+
+  --warning: oklch(0.47 0.1 65);
+  --warning-soft: oklch(0.96 0.045 88);
+  --warning-line: oklch(0.86 0.085 85);
+
+  --info: oklch(0.46 0.1 245);
+  --info-soft: oklch(0.955 0.025 245);
+  --info-line: oklch(0.86 0.05 245);
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-line: var(--primary-line);
+  --color-on-primary: var(--on-primary);
+
+  --color-positive: var(--positive);
+  --color-positive-soft: var(--positive-soft);
+  --color-positive-line: var(--positive-line);
+
+  --color-negative: var(--negative);
+  --color-negative-soft: var(--negative-soft);
+  --color-negative-line: var(--negative-line);
+
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-line: var(--warning-line);
+
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-line: var(--info-line);
+
+  /* Gothic for reading, Mincho for page titles and headline figures.
+     System fonts only: the app makes no outside requests. */
+  --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  --font-display: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", "Songti SC", serif;
+}
+
+@layer base {
+  /* Keyboard focus looks the same on every control. */
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  ::placeholder {
+    color: var(--subtle);
+  }
+
+  ::selection {
+    background: var(--primary-soft);
+  }
+}

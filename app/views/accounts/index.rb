@@ -16,7 +16,7 @@ class Views::Accounts::Index < Views::Base
 
       div(class: "mb-6") do
         render Card.new(title: Account::ACCOUNT_TYPE_LABELS[type]) do
-          table(class: "min-w-full divide-y divide-gray-200") do
+          table(class: "min-w-full divide-y divide-line") do
             thead do
               tr do
                 th(class: th_classes) { "コード" }
@@ -25,14 +25,14 @@ class Views::Accounts::Index < Views::Base
                 th(class: th_classes) { "" }
               end
             end
-            tbody(class: "divide-y divide-gray-100") do
+            tbody(class: "divide-y divide-line") do
               accounts_of_type.each do |account|
                 tr do
                   td(class: td_classes) { account.code }
                   td(class: "#{td_classes} font-medium") { account.name }
-                  td(class: "#{td_classes} text-gray-500") { account.name_en || "" }
+                  td(class: "#{td_classes} text-muted") { account.name_en || "" }
                   td(class: "#{td_classes} text-right") do
-                    a(href: edit_account_path(account), class: "text-indigo-600 hover:text-indigo-800 text-sm") { "編集" }
+                    a(href: edit_account_path(account), class: "#{LINK} text-sm whitespace-nowrap") { "編集" }
                   end
                 end
               end
@@ -46,10 +46,10 @@ class Views::Accounts::Index < Views::Base
   private
 
   def th_classes
-    "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+    "px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
   end
 
   def td_classes
-    "px-4 py-3 text-sm text-gray-900"
+    "px-4 py-3 text-sm tabular-nums text-ink"
   end
 end
