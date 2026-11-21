@@ -33,29 +33,16 @@ class DashboardLayoutTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "net business income is revenue less expenses after 按分 and 消費税, before the blue deduction" do
+  test "net business income is revenue less expenses after 按分, before 消費税 and the blue deduction" do
     @fiscal_year.revenues.create!(client_name: "取引先", amount: 100_000, date: Date.new(2099, 1, 31))
     @fiscal_year.expenses.create!(description: "家賃", amount: 40_000, category: :office, business_ratio: 50,
                                   date: Date.new(2099, 1, 5))
 
     get fiscal_year_url(@fiscal_year)
-    # 100,000 − 40,000 × 50% − 消費税 1,818 (100,000 × 10 / 110 = 9,090, 2割特例); no 65万円 deduction
-    assert_select "#business-profit", text: /¥78,182/
-    assert_select "#business-profit", text: /消費税 ¥1,818（租税公課）/
+    assert_select "#business-profit", text: /¥80,000/ # 100,000 − 40,000 × 50%; no 消費税, no 65万円 deduction
+    assert_select "#business-profit", text: /消費税|租税公課/, count: 0
     assert_select "#business-profit", text: /青色申告特別控除前/
     assert response.body.index("事業収入 (Revenue)") < response.body.index("事業利益 (Net business income)")
-  end
-
-  test "消費税 expensed when paid leaves this year's profit and comes off next year's" do
-    previous = FiscalYear.create!(year: 2098, consumption_tax_timing: :when_paid)
-    previous.revenues.create!(client_name: "取引先", amount: 110_000, date: Date.new(2098, 1, 31))
-
-    get fiscal_year_url(previous)
-    assert_select "#business-profit", text: /¥110,000/
-    assert_select "#business-profit", text: /租税公課/, count: 0
-
-    get fiscal_year_url(@fiscal_year)
-    assert_select "#business-profit .text-negative", text: "-¥2,000" # 2098's 10,000 × 20%, paid in 2099
   end
 
   test "the settings form changes when 消費税 is expensed" do
@@ -90,10 +77,10 @@ class DashboardLayoutTest < ActionDispatch::IntegrationTest
     assert_redirected_to fiscal_year_url(@fiscal_year)
     follow_redirect!
 
-    # 利益 78,182 ÷ 目標 300,000 = 26.0…% → 26%; 残り 221,818
+    # 利益 80,000 ÷ 目標 300,000 = 26.6…% → 26%; 残り 220,000
     assert_select "#business-profit-target", text: /目標 \(Target\)\s*¥300,000/
     assert_select "#business-profit-target [role=meter][aria-valuenow='26'] div[style='width: 26%']"
-    assert_select "#business-profit-target", text: /目標まであと \(To go\)\s*¥221,818/
+    assert_select "#business-profit-target", text: /目標まであと \(To go\)\s*¥220,000/
   end
 
   test "past the target the meter stays full and the surplus is in the text" do
@@ -101,9 +88,9 @@ class DashboardLayoutTest < ActionDispatch::IntegrationTest
     @fiscal_year.revenues.create!(client_name: "取引先", amount: 80_000, date: Date.new(2099, 1, 31))
 
     get fiscal_year_url(@fiscal_year)
-    assert_select "#business-profit-target", text: /157%/ # (80,000 − 消費税 1,454) ÷ 50,000
+    assert_select "#business-profit-target", text: /160%/ # 80,000 ÷ 50,000
     assert_select "#business-profit-target [role=meter] div[style='width: 100%']"
-    assert_select "#business-profit-target", text: /目標達成.*\+¥28,546/m
+    assert_select "#business-profit-target", text: /目標達成.*\+¥30,000/m
   end
 
   test "a loss leaves the meter empty and adds the loss to what is left" do

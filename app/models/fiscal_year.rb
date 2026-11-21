@@ -115,9 +115,9 @@ class FiscalYear < ApplicationRecord
 
   def following_year = self.class.find_by(year: year + 1)
 
-  # 売上 − 経費（按分後）− 消費税（租税公課）, before 青色申告特別控除: the 決算書's 差引金額.
-  # Negative in a loss.
-  def business_profit = total_revenue - total_expenses - consumption_tax_expense
+  # 売上 − 経費（按分後）, before 消費税（租税公課）and 青色申告特別控除. Negative in a loss.
+  # The dashboard's figure; the tax calculation takes #consumption_tax_expense off as well.
+  def business_profit = total_revenue - total_expenses
 
   # How far #business_profit is towards the target, as a whole percent rounded down
   # (so 100 means reached). 0 in a loss; nil without a target.

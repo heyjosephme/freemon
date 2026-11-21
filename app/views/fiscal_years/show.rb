@@ -248,8 +248,8 @@ class Views::FiscalYears::Show < Views::Base
     end
   end
 
-  # 売上 − 経費（按分後）− 消費税: what the business has earned so far, before 青色申告特別控除
-  # (the tax summary applies that).
+  # 売上 − 経費（按分後）: what the business has earned so far, before 消費税（租税公課）and
+  # 青色申告特別控除 (the tax summary applies those).
   def business_profit_section
     profit = @fiscal_year.business_profit
     render Card.new do
@@ -260,8 +260,6 @@ class Views::FiscalYears::Show < Views::Base
         end
         p(class: "mt-1 text-xs text-muted") do
           plain "売上 #{yen(@fiscal_year.total_revenue)} − 経費 #{yen(@fiscal_year.total_expenses)}（按分後）"
-          consumption_tax = @fiscal_year.consumption_tax_expense
-          plain " − 消費税 #{yen(consumption_tax)}（租税公課）" if consumption_tax.positive?
         end
         p(class: "text-xs text-muted") { "青色申告特別控除前" } if @fiscal_year.blue?
         business_profit_target(profit)

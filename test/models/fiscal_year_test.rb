@@ -37,7 +37,7 @@ class FiscalYearTest < ActiveSupport::TestCase
 
     assert_equal 20_000, @fiscal_year.consumption_tax_payable # 1,100,000 × 10 / 110 × 20% (2割特例)
     assert_equal 20_000, @fiscal_year.consumption_tax_expense
-    assert_equal 1_100_000 - 300_000 - 20_000, @fiscal_year.business_profit
+    assert_equal 1_100_000 - 300_000, @fiscal_year.business_profit, "the dashboard figure is before 消費税"
     assert_equal 0, later.consumption_tax_expense
   end
 
@@ -48,9 +48,7 @@ class FiscalYearTest < ActiveSupport::TestCase
     later.revenues.create!(client_name: "取引先", amount: 550_000, date: Date.new(2031, 6, 1))
 
     assert_equal 0, @fiscal_year.consumption_tax_expense
-    assert_equal 1_100_000, @fiscal_year.business_profit
     assert_equal 20_000 + 10_000, later.consumption_tax_expense # 2030's, paid in 2031, plus 2031's accrued
-    assert_equal 550_000 - 30_000, later.business_profit
   end
 
   test "new entries start today in the current year, else on January 1st" do
