@@ -23,18 +23,20 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="bg-canvas text-ink font-sans antialiased min-h-screen">
-    <%= render Components::Navbar.new(fiscal_years: navbar_fiscal_years, active_fiscal_year: @fiscal_year) %>
+  <body class="bg-canvas text-ink font-sans antialiased min-h-screen lg:flex">
+    <%= render Components::Sidebar.new(fiscal_years: navbar_fiscal_years, active_fiscal_year: @fiscal_year, current_path: request.path) %>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <% if notice %>
-        <%= render Components::Alert.new(message: notice, type: :success) %>
-      <% end %>
-      <% if alert %>
-        <%= render Components::Alert.new(message: alert, type: :error) %>
-      <% end %>
+    <main class="min-w-0 flex-1 px-4 py-8 sm:px-6 lg:px-10">
+      <div class="mx-auto max-w-5xl">
+        <% if notice %>
+          <%= render Components::Alert.new(message: notice, type: :success) %>
+        <% end %>
+        <% if alert %>
+          <%= render Components::Alert.new(message: alert, type: :error) %>
+        <% end %>
 
-      <%= yield %>
+        <%= yield %>
+      </div>
     </main>
   </body>
 </html>

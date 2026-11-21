@@ -9,7 +9,7 @@ class Views::Deductions::Form < Views::Base
   def view_template
     url = @deduction.persisted? ? fiscal_year_deduction_path(@fiscal_year, @deduction) : fiscal_year_deductions_path(@fiscal_year)
 
-    form_with(model: @deduction, url: url, class: "space-y-6") do |f|
+    form_with(model: @deduction, url: url, class: "max-w-2xl space-y-6") do |f|
       render Card.new do
         div(class: "mb-4") do
           f.label :deduction_type, "控除の種類 (Deduction Type)", class: LABEL

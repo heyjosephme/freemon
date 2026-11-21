@@ -6,7 +6,7 @@ class Views::FiscalYears::Form < Views::Base
   end
 
   def view_template
-    form_with(model: @fiscal_year, class: "space-y-6") do |f|
+    form_with(model: @fiscal_year, class: "max-w-2xl space-y-6") do |f|
       render Card.new do
         div(class: "mb-4") do
           f.label :year, "年度 (Year)", class: LABEL

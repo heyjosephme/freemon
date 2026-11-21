@@ -11,7 +11,7 @@ class Views::Revenues::Form < Views::Base
   def view_template
     url = @revenue.persisted? ? fiscal_year_revenue_path(@fiscal_year, @revenue) : fiscal_year_revenues_path(@fiscal_year)
 
-    form_with(model: @revenue, url: url, class: "space-y-6") do |f|
+    form_with(model: @revenue, url: url, class: "max-w-2xl space-y-6") do |f|
       input(type: "hidden", name: "return_to", value: @return_to) if @return_to
       render Card.new do
         field(f, :client_name, "取引先名 (Client Name)", type: :text_field)

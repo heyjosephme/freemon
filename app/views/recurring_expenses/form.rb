@@ -6,7 +6,7 @@ class Views::RecurringExpenses::Form < Views::Base
   end
 
   def view_template
-    form_with(model: @recurring_expense, class: "space-y-6") do |f|
+    form_with(model: @recurring_expense, class: "max-w-2xl space-y-6") do |f|
       render Card.new do
         field(f, :description, "内容 (Description)", type: :text_field, placeholder: "例: 家賃、インターネット、電気代")
         field(f, :amount, "金額 税込 (Amount, tax included)", type: :number_field, min: 1, placeholder: "¥",

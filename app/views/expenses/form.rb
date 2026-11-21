@@ -11,7 +11,7 @@ class Views::Expenses::Form < Views::Base
   def view_template
     url = @expense.persisted? ? fiscal_year_expense_path(@fiscal_year, @expense) : fiscal_year_expenses_path(@fiscal_year)
 
-    form_with(model: @expense, url: url, class: "space-y-6") do |f|
+    form_with(model: @expense, url: url, class: "max-w-2xl space-y-6") do |f|
       input(type: "hidden", name: "return_to", value: @return_to) if @return_to
       render Card.new do
         field(f, :description, "内容 (Description)", type: :text_field, placeholder: "例: コワーキングスペース利用料")

@@ -6,9 +6,11 @@
 # Bars share one scale (max of any month's revenue/expense). The cumulative
 # line uses its own scale (a trend line) — its end value equals the period's
 # net, which the surrounding view shows numerically.
+#
+# The dashboard draws a shorter one without the line (height:, cumulative: false)
+# and marks the month in progress (current_month:, 1–12).
 class Components::Charts::MonthlyCashflow < Phlex::SVG
   VB_W = 720.0
-  VB_H = 300.0
   PAD_L = 10.0
   PAD_R = 10.0
   PAD_T = 12.0
@@ -19,31 +21,42 @@ class Components::Charts::MonthlyCashflow < Phlex::SVG
   REVENUE_FILL = "fill-primary"
   EXPENSE_FILL = "fill-negative"
 
-  def initialize(months:)
+  def initialize(months:, height: 300, cumulative: true, current_month: nil)
     @months = months
+    @height = height.to_f
+    @cumulative = cumulative
+    @current_month = current_month
   end
 
   def view_template
-    svg(viewBox: "0 0 #{VB_W.to_i} #{VB_H.to_i}", class: "w-full h-auto", role: "img",
+    svg(viewBox: "0 0 #{VB_W.to_i} #{@height.to_i}", class: "w-full h-auto", role: "img",
         aria_label: "月次キャッシュフロー") do
-      line(x1: PAD_L, y1: baseline_y, x2: VB_W - PAD_R, y2: baseline_y, class: "stroke-line-strong", stroke_width: "1")
-
       @months.each_with_index do |m, i|
         c = center_x(i)
+        current = m.month == @current_month
+        if current
+          rect(x: (c - slot_w / 2).round(2), y: 0, width: slot_w.round(2), height: @height, class: "fill-sunken", rx: "4")
+        end
         draw_bar(c - gap / 2 - bar_w, m.revenue, REVENUE_FILL)
         draw_bar(c + gap / 2, m.expense, EXPENSE_FILL)
-        text(x: c.round(2), y: (baseline_y + 16).round(2), class: "fill-subtle",
-             font_size: "11", text_anchor: "middle") { (i + 1).to_s }
+        text(x: c.round(2), y: (baseline_y + 17).round(2), class: current ? "fill-ink font-semibold" : "fill-subtle",
+             font_size: label_size, text_anchor: "middle") { (i + 1).to_s }
       end
 
-      polyline(points: cumulative_points, fill: "none", class: "stroke-ink",
-               stroke_width: "2", stroke_linejoin: "round", stroke_linecap: "round")
-      circle(cx: center_x(@months.length - 1).round(2),
-             cy: cumulative_y(@months.last.cumulative).round(2), r: "3.5", class: "fill-ink")
+      # Drawn after the current month's band, so the band doesn't cover it.
+      line(x1: PAD_L, y1: baseline_y, x2: VB_W - PAD_R, y2: baseline_y, class: "stroke-line-strong", stroke_width: "1")
+      cumulative_line if @cumulative
     end
   end
 
   private
+
+  def cumulative_line
+    polyline(points: cumulative_points, fill: "none", class: "stroke-ink",
+             stroke_width: "2", stroke_linejoin: "round", stroke_linecap: "round")
+    circle(cx: center_x(@months.length - 1).round(2),
+           cy: cumulative_y(@months.last.cumulative).round(2), r: "3.5", class: "fill-ink")
+  end
 
   def draw_bar(x, value, fill_class)
     h = bar_height(value)
@@ -53,8 +66,11 @@ class Components::Charts::MonthlyCashflow < Phlex::SVG
          height: h.round(2), class: fill_class, rx: "1")
   end
 
+  # A short chart is shown smaller, so its labels are set larger to stay readable.
+  def label_size = @height < 200 ? "14" : "11"
+
   def plot_w = VB_W - PAD_L - PAD_R
-  def plot_h = VB_H - PAD_T - PAD_B
+  def plot_h = @height - PAD_T - PAD_B
   def baseline_y = PAD_T + plot_h
   def slot_w = plot_w / 12.0
   def usable_h = plot_h * 0.88

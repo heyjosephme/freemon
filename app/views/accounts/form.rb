@@ -6,7 +6,7 @@ class Views::Accounts::Form < Views::Base
   end
 
   def view_template
-    form_with(model: @account, class: "space-y-6") do |f|
+    form_with(model: @account, class: "max-w-2xl space-y-6") do |f|
       render Card.new do
         div(class: "mb-4") do
           f.label :code, "コード (Code)", class: LABEL

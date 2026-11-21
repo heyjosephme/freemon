@@ -19,6 +19,7 @@ class ExpensesController < ApplicationController
   def create
     @expense = @fiscal_year.expenses.build(expense_params)
     if @expense.save
+      flash[:entry_date] = @expense.date.iso8601 if return_to # the dashboard's next quick-add starts on this day
       redirect_to back_path, notice: "経費を登録しました。"
     else
       render Views::Expenses::New.new(fiscal_year: @fiscal_year, expense: @expense, back_path: back_path, return_to: return_to),

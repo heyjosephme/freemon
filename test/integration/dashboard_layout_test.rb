@@ -7,14 +7,80 @@ class DashboardLayoutTest < ActionDispatch::IntegrationTest
     @fiscal_year = FiscalYear.create!(year: 2099)
   end
 
-  test "sections follow how often they're used" do
+  test "the year's result comes first, then catching up, entry and the once-a-year sections" do
     get fiscal_year_url(@fiscal_year)
 
-    headings = [ "経費 (Expenses)", "事業収入 (Revenue)", "給与所得 (Salary Income)", "所得控除 (Deductions)",
-                 "帳簿・レポート", "分析・節税" ]
-    positions = headings.map { |heading| response.body.index(heading) }
+    sections = [ 'id="year-summary"', 'id="business-profit"', 'id="catch-up"', 'id="quick-add-expense"',
+                 "売上 (Revenue)</h2>", "給与所得 (Salary Income)", "所得控除 (Deductions)" ]
+    positions = sections.map { |section| response.body.index(section) }
     assert positions.all?, "every section is on the page"
     assert_equal positions.sort, positions
+  end
+
+  test "the sidebar links the year's pages and marks the current one" do
+    get fiscal_year_expenses_url(@fiscal_year)
+
+    assert_select "nav a[aria-current=page]", text: "経費", count: 1
+    assert_select "nav a[href=?]", fiscal_year_path(@fiscal_year), text: "ホーム"
+    [ tax_summary_fiscal_year_path(@fiscal_year), cashflow_fiscal_year_path(@fiscal_year), balance_sheet_fiscal_year_path(@fiscal_year),
+      fiscal_year_journal_entries_path(@fiscal_year), fixed_asset_tax_fiscal_year_path(@fiscal_year), edit_fiscal_year_path(@fiscal_year),
+      new_fiscal_year_salary_income_path(@fiscal_year), recurring_expenses_path, accounts_path ].each do |path|
+      assert_select "nav a[href=?]", path
+    end
+  end
+
+  test "pages outside a year link into the home year" do
+    travel_to Date.new(2099, 6, 1) do
+      get accounts_url
+      assert_select "nav summary", text: /2099年/
+      assert_select "nav a[href=?]", fiscal_year_expenses_path(@fiscal_year), text: "経費"
+      assert_select "nav a[aria-current=page]", text: "勘定科目"
+    end
+  end
+
+  test "the summary shows the twelve months and marks the one in progress" do
+    travel_to Date.new(2099, 3, 10) do
+      @fiscal_year.revenues.create!(client_name: "取引先", amount: 100_000, date: Date.new(2099, 2, 28))
+
+      get fiscal_year_url(@fiscal_year)
+      assert_select "#year-summary svg text", count: 12
+      assert_select "#year-summary svg rect.fill-primary", count: 1
+      assert_select "#year-summary svg text.fill-ink", text: "3"
+
+      get fiscal_year_url(FiscalYear.create!(year: 2098))
+      assert_select "#year-summary svg text.fill-ink", count: 0
+    end
+  end
+
+  test "catching up shows how far entry has got, months with no 売上 and receipts to attach" do
+    travel_to Date.new(2099, 6, 10) do
+      get fiscal_year_url(@fiscal_year)
+      assert_select "#catch-up", text: /まだ入力がありません/
+      assert_select "#catch-up", text: /確認が必要なものはありません/
+
+      @fiscal_year.revenues.create!(client_name: "取引先", amount: 100_000, date: Date.new(2099, 2, 28))
+      @fiscal_year.revenues.create!(client_name: "取引先", amount: 100_000, date: Date.new(2099, 4, 30))
+      @fiscal_year.expenses.create!(description: "文房具", amount: 1_000, category: :other, date: Date.new(2099, 5, 2))
+      @fiscal_year.expenses.create!(description: "サーバー", amount: 1_000, category: :other, purchase_channel: :online,
+                                    date: Date.new(2099, 5, 20))
+
+      get fiscal_year_url(@fiscal_year)
+      assert_select "#catch-up", text: %r{入力済み: 経費 5/20 まで · 売上 4/30 まで}
+      # February to May are over; January came before the first 売上 and June is still running.
+      assert_select "#catch-up li", text: /売上の入力がない月:\s*3月・5月/
+      assert_select "#catch-up li", text: /領収書が未添付の経費:\s*1件/ # the online one has an e-receipt
+      assert_select "#catch-up", text: /確認が必要なものはありません/, count: 0
+    end
+  end
+
+  test "a finished year isn't asked about its empty months" do
+    travel_to Date.new(2099, 6, 10) do
+      previous = FiscalYear.create!(year: 2097)
+      previous.revenues.create!(client_name: "取引先", amount: 100_000, date: Date.new(2097, 2, 28))
+
+      get fiscal_year_url(previous)
+      assert_select "#catch-up", text: /売上の入力がない月/, count: 0
+    end
   end
 
   test "this month's spending shows for the current year only" do
@@ -26,7 +92,7 @@ class DashboardLayoutTest < ActionDispatch::IntegrationTest
 
       get fiscal_year_url(@fiscal_year)
       assert_select "#expense-totals", text: /今月\s*¥1,000/
-      assert_select "#expense-totals", text: /年間\s*¥3,500/ # 1,000 + 5,000 × 50%
+      assert_select "#expense-totals", text: /¥3,500\s*按分後 · 2件/ # 1,000 + 5,000 × 50%
 
       get fiscal_year_url(previous)
       assert_select "#expense-totals", text: /今月/, count: 0
@@ -42,7 +108,6 @@ class DashboardLayoutTest < ActionDispatch::IntegrationTest
     assert_select "#business-profit", text: /¥80,000/ # 100,000 − 40,000 × 50%; no 消費税, no 65万円 deduction
     assert_select "#business-profit", text: /消費税|租税公課/, count: 0
     assert_select "#business-profit", text: /青色申告特別控除前/
-    assert response.body.index("事業収入 (Revenue)") < response.body.index("事業利益 (Net business income)")
   end
 
   test "the settings form changes when 消費税 is expensed" do
@@ -112,16 +177,21 @@ class DashboardLayoutTest < ActionDispatch::IntegrationTest
     assert_nil @fiscal_year.reload.business_profit_target
   end
 
-  test "the dashboard lists the latest five expenses and three revenues" do
-    1.upto(6) do |day|
-      @fiscal_year.expenses.create!(description: "経費#{day}", amount: day, category: :other, date: Date.new(2099, 1, day))
-      @fiscal_year.revenues.create!(client_name: "取引先#{day}", amount: day, date: Date.new(2099, 1, day))
+  test "the dashboard lists the latest eight expenses under their months, and three revenues" do
+    1.upto(9) do |day|
+      @fiscal_year.expenses.create!(description: "経費#{day}", amount: day * 100, category: :other, business_ratio: 50,
+                                    date: Date.new(2099, day > 6 ? 2 : 1, day))
     end
+    1.upto(6) { |day| @fiscal_year.revenues.create!(client_name: "取引先#{day}", amount: day, date: Date.new(2099, 1, day)) }
     get fiscal_year_url(@fiscal_year)
 
-    assert_select "#recent-expenses a", count: 5
-    assert_select "#recent-expenses a", text: /経費6/
-    assert_select "#recent-expenses a", text: /経費1/, count: 0
+    assert_select "#recent-expenses a", count: 8
+    assert_select "#recent-expenses a", text: /経費9/
+    assert_select "#recent-expenses a", text: /経費1\b/, count: 0
+    # Month headings carry the month's spending at full amounts: 700 + 800 + 900, and 100 + … + 600.
+    assert_select "#recent-expenses li:not(:has(a))", count: 2
+    assert_select "#recent-expenses li:not(:has(a))", text: /2月\s*支出 ¥2,400/
+    assert_select "#recent-expenses li:not(:has(a))", text: /1月\s*支出 ¥2,100/
     assert_select "#recent-revenues li", count: 3
     assert_select "#recent-revenues a[href=?]", edit_fiscal_year_revenue_path(@fiscal_year, @fiscal_year.revenues.find_by!(client_name: "取引先6"), return_to: "dashboard")
   end

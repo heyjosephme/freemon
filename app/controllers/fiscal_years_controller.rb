@@ -17,9 +17,11 @@ class FiscalYearsController < ApplicationController
     render Views::FiscalYears::Show.new(
       fiscal_year: @fiscal_year,
       reserve: TaxReserveEstimator.new(@fiscal_year).calculate,
+      months: CashflowReport.new(@fiscal_year).months,
       filing_year: open_filing_year,
       start_current_year: start_current_year?,
-      recurring_bills: RecurringExpense.pending_in(@fiscal_year.year)
+      recurring_bills: RecurringExpense.pending_in(@fiscal_year.year),
+      entry_date: entry_date
     )
   end
 
@@ -127,6 +129,13 @@ class FiscalYearsController < ApplicationController
     return unless filing_year&.open_filing_deadlines&.any?
 
     filing_year if @fiscal_year.year.in?([ filing_year.year, filing_year.year + 1 ])
+  end
+
+  # Left by an expense just added from the dashboard, so the quick-add row keeps its date.
+  def entry_date
+    Date.iso8601(flash[:entry_date].to_s)
+  rescue Date::Error
+    nil
   end
 
   # Until this year has a record, the dashboard the home page lands on offers to create it.

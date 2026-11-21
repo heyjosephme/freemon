@@ -1,53 +1,48 @@
 # frozen_string_literal: true
 
-# A fiscal year's dashboard, ordered by how often each part is used: 経費
-# (daily or weekly, with a quick-add row) beside 事業収入 (monthly), then the
-# once-a-year 給与所得 and 所得控除, then reports and analysis.
+# A fiscal year's dashboard, for someone who comes back every week or month to
+# enter a batch: where the year stands (事業利益, 売上, 経費, 納税準備 and the twelve
+# months), then what has piled up since the last visit, then entry with the latest
+# entries under it. The once-a-year 給与所得 and 所得控除 come last; reports are in
+# the sidebar.
 class Views::FiscalYears::Show < Views::Base
-  RECENT_EXPENSES = 5
+  RECENT_EXPENSES = 8
   RECENT_REVENUES = 3
   CATEGORY_CHOICES = Expense::CATEGORY_LABELS.keys.map { |key| [ Expense.category_name(key), key ] }.freeze
   CHANNEL_CHOICES = Expense::PURCHASE_CHANNEL_LABELS.map { |key, label| [ label, key ] }.freeze
 
-  def initialize(fiscal_year:, reserve:, filing_year: nil, start_current_year: false, recurring_bills: [])
+  # entry_date: the date of the expense just added from here, so the next one in
+  # the batch starts on the same day.
+  def initialize(fiscal_year:, reserve:, months:, filing_year: nil, start_current_year: false, recurring_bills: [], entry_date: nil)
     @fiscal_year = fiscal_year
     @reserve = reserve
+    @months = months
     @filing_year = filing_year
     @start_current_year = start_current_year
     @recurring_bills = recurring_bills
+    @entry_date = entry_date if entry_date&.year == fiscal_year.year
   end
 
   def view_template
-    render PageHeader.new(title: "#{@fiscal_year.year}年", back_path: fiscal_years_path) do
-      render Button.new(href: edit_fiscal_year_path(@fiscal_year), variant: :secondary, size: :sm) { "設定" }
-      render Button.new(href: tax_summary_fiscal_year_path(@fiscal_year), size: :sm) { "税額計算" }
-    end
-
-    div(class: "mb-4 flex gap-2") do
+    div(class: "mb-6 flex flex-wrap items-center gap-3") do
+      h1(class: "font-display text-3xl font-semibold tracking-wide text-ink") { "#{@fiscal_year.year}年" }
       render Badge.new(text: @fiscal_year.filing_type_label, color: @fiscal_year.white? ? :gray : :indigo)
       render Badge.new(text: "今年", color: :green) if current_year?
     end
 
     filing_banner
     start_year_banner
-    reserve_banner
+    year_summary
+    catch_up
 
-    div(class: "grid grid-cols-1 lg:grid-cols-3 items-start gap-6 mb-6") do
-      div(class: "lg:col-span-2") { expense_section }
-      div(class: "space-y-6") do
-        revenue_section
-        business_profit_section
-      end
-    end
-
-    div(class: "grid grid-cols-1 md:grid-cols-2 gap-6 mb-6") do
-      salary_summary
-      deduction_summary
+    div(class: "grid grid-cols-1 lg:grid-cols-5 items-start gap-6 mb-6") do
+      div(class: "lg:col-span-3") { expense_section }
+      div(class: "lg:col-span-2") { revenue_section }
     end
 
     div(class: "grid grid-cols-1 md:grid-cols-2 gap-6") do
-      bookkeeping_links
-      analysis_links
+      salary_summary
+      deduction_summary
     end
   end
 
@@ -87,26 +82,151 @@ class Views::FiscalYears::Show < Views::Base
     end
   end
 
-  def reserve_banner
-    return unless @fiscal_year.total_revenue.positive? || @fiscal_year.salary_income.present?
+  # Where the year stands: the result on the left, what it's made of and the twelve
+  # months on the right.
+  def year_summary
+    section(id: "year-summary", class: "mb-6 grid grid-cols-1 rounded-lg border border-line bg-surface lg:grid-cols-5") do
+      div(class: "p-6 lg:col-span-2") { business_profit }
+      div(class: "border-t border-line p-6 lg:col-span-3 lg:border-l lg:border-t-0") do
+        div(class: "grid grid-cols-2 gap-4 sm:grid-cols-3") do
+          revenue_stat
+          expense_stat
+          reserve_stat
+        end
+        monthly_chart
+      end
+    end
+  end
 
+  def revenue_stat
+    stat("売上 (Revenue)", yen(@fiscal_year.total_revenue)) { "#{@fiscal_year.revenues.count}件" }
+  end
+
+  def expense_stat
+    expenses = @fiscal_year.expenses
+    stat("経費 (Expenses)", yen(@fiscal_year.total_expenses), id: "expense-totals") do
+      plain "按分後 · #{expenses.count}件"
+      if current_year?
+        br
+        plain "今月 #{yen(expenses.where(date: Date.current.all_month).sum(:amount))}"
+      end
+    end
+  end
+
+  # 所得税・消費税・住民税・国保 together, once there is income to tax.
+  def reserve_stat
+    unless @fiscal_year.total_revenue.positive? || @fiscal_year.salary_income.present?
+      return stat("納税準備の目安 (Set aside)", "—") { "収入を入力すると計算されます" }
+    end
+
+    stat("納税準備の目安 (Set aside)", yen(@reserve[:total]), href: tax_reserve_fiscal_year_path(@fiscal_year)) do
+      plain "売上の約#{@reserve[:reserve_rate]}% · " if @reserve[:revenue].positive?
+      plain "内訳 →"
+    end
+  end
+
+  def stat(label, value, id: nil, href: nil, &detail)
+    div(id: id, class: "min-w-0") do
+      p(class: "text-xs text-muted") { label }
+      p(class: "mt-1 text-xl font-semibold tabular-nums text-ink") { value }
+      if href
+        a(href: href, class: "mt-0.5 block text-xs #{LINK}", &detail)
+      else
+        p(class: "mt-0.5 text-xs text-muted", &detail)
+      end
+    end
+  end
+
+  # Cash in and out by month at full amounts (実額), unlike the 按分後 figure above.
+  def monthly_chart
+    div(class: "mt-6") do
+      div(class: "mb-1 flex flex-wrap items-center justify-between gap-2 text-xs text-muted") do
+        div(class: "flex items-center gap-4") do
+          legend_item("bg-primary", "収入")
+          legend_item("bg-negative", "支出（実額）")
+        end
+        a(href: cashflow_fiscal_year_path(@fiscal_year), class: LINK) { "キャッシュフロー →" }
+      end
+      render Components::Charts::MonthlyCashflow.new(months: @months, height: 150, cumulative: false,
+                                                     current_month: (Date.current.month if current_year?))
+    end
+  end
+
+  def legend_item(color, text)
+    span(class: "inline-flex items-center gap-1.5") do
+      span(class: "inline-block h-2.5 w-2.5 rounded-sm #{color}")
+      plain text
+    end
+  end
+
+  # What has piled up since the last visit: how far entry has got, the 定期経費 bills
+  # not recorded yet, months with no 売上, and paper receipts still to attach.
+  def catch_up
+    notes = catch_up_notes
     div(class: "mb-6") do
-      a(href: tax_reserve_fiscal_year_path(@fiscal_year), class: "block") do
-        div(class: "rounded-lg border border-primary-line bg-primary-soft px-5 py-4 flex items-center justify-between gap-4 hover:border-primary transition-colors") do
-          div do
-            p(class: "text-sm font-semibold text-primary") { "納税準備の目安 (Set aside for taxes)" }
-            p(class: "text-xs text-muted mt-0.5") { "所得税・消費税・住民税・国保の概算合計 →" }
+      render Card.new do
+        div(id: "catch-up") do
+          div(class: "flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 mb-3") do
+            h2(class: "text-base font-semibold text-ink") { "前回からの確認 (Catch up)" }
+            p(class: "text-xs text-muted") { entered_through }
           end
-          div(class: "text-right") do
-            p(class: "font-display text-3xl font-semibold tabular-nums text-primary") { yen(@reserve[:total]) }
-            if @reserve[:revenue].positive?
-              p(class: "text-xs text-muted") { "売上の約#{@reserve[:reserve_rate]}%" }
+          recurring_bills
+          if notes.any?
+            ul(class: "divide-y divide-line text-sm") do
+              notes.each { |note| li(class: "flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2", &note) }
             end
+          elsif @recurring_bills.empty? && !RecurringExpense.exists?
+            p(class: "text-sm text-muted") { "確認が必要なものはありません ✓" }
           end
         end
       end
     end
   end
+
+  def entered_through
+    last = { "経費" => @fiscal_year.expenses.maximum(:date), "売上" => @fiscal_year.revenues.maximum(:date) }.compact
+    return "まだ入力がありません" if last.empty?
+
+    "入力済み: " + last.map { |label, date| "#{label} #{date.month}/#{date.day} まで" }.join(" · ")
+  end
+
+  def catch_up_notes
+    notes = []
+    if (months = months_without_revenue).any?
+      notes << proc do
+        span(class: "text-ink") do
+          span(class: "text-warning") { "売上の入力がない月: " }
+          plain months.map { |month| "#{month}月" }.join("・")
+        end
+        a(href: new_fiscal_year_revenue_path(@fiscal_year, return_to: "dashboard"), class: LINK) { "売上を追加 →" }
+      end
+    end
+    if (count = receipts_missing).positive?
+      notes << proc do
+        span(class: "text-ink") do
+          span(class: "text-warning") { "領収書が未添付の経費: " }
+          plain "#{count}件"
+        end
+        a(href: fiscal_year_expenses_path(@fiscal_year), class: LINK) { "経費一覧で確認 →" }
+      end
+    end
+    notes
+  end
+
+  # Finished months with no 売上, from the first month that has any. Only while the
+  # year is still being entered: this year, or last year until its 確定申告 is filed.
+  def months_without_revenue
+    return [] unless current_year? || @filing_year == @fiscal_year
+
+    first = @months.find { |month| month.revenue.positive? }&.month
+    last = current_year? ? Date.current.month - 1 : 12
+    return [] unless first
+
+    @months.select { |month| month.month.between?(first, last) && month.revenue.zero? }.map(&:month)
+  end
+
+  # In-person expenses with no photo of the paper receipt (Expense#receipt_missing?).
+  def receipts_missing = @fiscal_year.expenses.in_person.where.missing(:receipts_attachments).count
 
   def expense_section
     expenses = @fiscal_year.expenses
@@ -115,17 +235,10 @@ class Views::FiscalYears::Show < Views::Base
         render Button.new(href: new_fiscal_year_expense_path(@fiscal_year, return_to: "dashboard"), variant: :secondary, size: :sm) { "詳細入力" }
       end
       quick_add_expense
-      recurring_bills
-
-      div(id: "expense-totals", class: "flex flex-wrap items-baseline gap-x-6 gap-y-1 text-sm mb-3") do
-        total("今月", expenses.where(date: Date.current.all_month).sum(:amount)) if current_year?
-        total("年間", @fiscal_year.total_expenses, note: "（按分後）")
-        span(class: "text-muted") { "#{expenses.count}件" }
-      end
 
       recent_entries(
         id: "recent-expenses", label: :description, empty: "まだ経費がありません。上の行から追加できます。",
-        records: expenses.order(date: :desc, id: :desc).limit(RECENT_EXPENSES),
+        records: expenses.order(date: :desc, id: :desc).limit(RECENT_EXPENSES), by_month: true,
         edit_path: ->(expense) { edit_fiscal_year_expense_path(@fiscal_year, expense, return_to: "dashboard") }
       )
       list_link(fiscal_year_expenses_path(@fiscal_year))
@@ -133,16 +246,17 @@ class Views::FiscalYears::Show < Views::Base
   end
 
   # Two short rows for routine expenses: 按分率 stays 100% and インボイス 未設定.
-  # Anything more (receipts, 按分) goes through 詳細入力.
+  # Anything more (receipts, 按分) goes through 詳細入力. After an add, the date stays
+  # and 内容 takes the focus, ready for the next one.
   def quick_add_expense
-    form_with(model: Expense.new(date: @fiscal_year.default_entry_date), url: fiscal_year_expenses_path(@fiscal_year),
+    form_with(model: Expense.new(date: @entry_date || @fiscal_year.default_entry_date), url: fiscal_year_expenses_path(@fiscal_year),
               id: "quick-add-expense", class: "space-y-2 mb-5") do |f|
       input(type: "hidden", name: "return_to", value: "dashboard")
       div(class: "flex flex-wrap gap-2") do
         f.label :date, "日付", class: "sr-only"
         f.date_field :date, required: true, class: "#{INPUT} w-40"
         f.label :description, "内容", class: "sr-only"
-        f.text_field :description, required: true, placeholder: "内容", class: "#{INPUT} min-w-0 flex-1 basis-40"
+        f.text_field :description, required: true, placeholder: "内容", autofocus: @entry_date.present?, class: "#{INPUT} min-w-0 flex-1 basis-40"
         f.label :amount, "金額（税込）", class: "sr-only"
         f.number_field :amount, required: true, min: 1, placeholder: "金額（税込）", class: "#{INPUT} w-36"
       end
@@ -163,14 +277,14 @@ class Views::FiscalYears::Show < Views::Base
     if @recurring_bills.empty?
       return unless RecurringExpense.exists?
 
-      p(id: "recurring-bills", class: "mb-4 text-sm text-muted") do
+      p(id: "recurring-bills", class: "mb-2 text-sm text-muted") do
         plain "定期経費: 未登録はありません ✓ "
         a(href: recurring_expenses_path, class: LINK) { "管理" }
       end
       return
     end
 
-    div(id: "recurring-bills", class: "mb-5 rounded-md border border-warning-line bg-warning-soft px-3 py-2") do
+    div(id: "recurring-bills", class: "mb-3 rounded-md border border-warning-line bg-warning-soft px-3 py-2") do
       div(class: "flex items-center justify-between gap-3") do
         h3(class: "text-sm font-semibold text-warning") { "定期経費 (Recurring) 未登録 #{@recurring_bills.size}件" }
         a(href: recurring_expenses_path, class: "text-xs #{LINK}") { "管理 →" }
@@ -220,13 +334,8 @@ class Views::FiscalYears::Show < Views::Base
   def revenue_section
     revenues = @fiscal_year.revenues
     render Card.new do
-      section_header("事業収入 (Revenue)") do
+      section_header("売上 (Revenue)") do
         render Button.new(href: new_fiscal_year_revenue_path(@fiscal_year, return_to: "dashboard"), variant: :secondary, size: :sm) { "＋ 売上を追加" }
-      end
-
-      div(class: "flex flex-wrap items-baseline gap-x-6 gap-y-1 text-sm mb-3") do
-        total("年間", @fiscal_year.total_revenue)
-        span(class: "text-muted") { "#{revenues.count}件" }
       end
 
       if revenues.none? && (previous = previous_year_to_copy_from)
@@ -250,20 +359,18 @@ class Views::FiscalYears::Show < Views::Base
 
   # 売上 − 経費（按分後）: what the business has earned so far, before 消費税（租税公課）and
   # 青色申告特別控除 (the tax summary applies those).
-  def business_profit_section
+  def business_profit
     profit = @fiscal_year.business_profit
-    render Card.new do
-      div(id: "business-profit") do
-        h2(class: "text-base font-semibold text-ink") { "事業利益 (Net business income)" }
-        p(class: "mt-2 font-display text-3xl font-semibold tabular-nums #{profit.negative? ? "text-negative" : "text-ink"}") do
-          plain profit.negative? ? "-#{yen(profit.abs)}" : yen(profit)
-        end
-        p(class: "mt-1 text-xs text-muted") do
-          plain "売上 #{yen(@fiscal_year.total_revenue)} − 経費 #{yen(@fiscal_year.total_expenses)}（按分後）"
-        end
-        p(class: "text-xs text-muted") { "青色申告特別控除前" } if @fiscal_year.blue?
-        business_profit_target(profit)
+    div(id: "business-profit") do
+      h2(class: "text-sm font-medium text-muted") { "事業利益 (Net business income)" }
+      p(class: "mt-2 font-display text-4xl font-semibold tabular-nums #{profit.negative? ? "text-negative" : "text-ink"}") do
+        plain profit.negative? ? "-#{yen(profit.abs)}" : yen(profit)
       end
+      p(class: "mt-2 text-xs text-muted") do
+        plain "売上 − 経費（按分後）"
+        plain " · 青色申告特別控除前" if @fiscal_year.blue?
+      end
+      business_profit_target(profit)
     end
   end
 
@@ -272,13 +379,13 @@ class Views::FiscalYears::Show < Views::Base
   def business_profit_target(profit)
     target = @fiscal_year.business_profit_target
     unless target
-      p(class: "mt-3 text-sm") { a(href: edit_fiscal_year_path(@fiscal_year), class: LINK) { "目標を設定 →" } }
+      p(class: "mt-4 text-sm") { a(href: edit_fiscal_year_path(@fiscal_year), class: LINK) { "目標を設定 →" } }
       return
     end
 
     progress = @fiscal_year.business_profit_progress(profit)
     reached = profit >= target
-    div(id: "business-profit-target", class: "mt-4 border-t border-line pt-4") do
+    div(id: "business-profit-target", class: "mt-5") do
       div(class: "flex items-baseline justify-between gap-3 text-sm") do
         span(class: "text-muted") do
           plain "目標 (Target) "
@@ -338,56 +445,27 @@ class Views::FiscalYears::Show < Views::Base
     end
   end
 
-  def bookkeeping_links
-    render Card.new(title: "帳簿・レポート (Bookkeeping & Reports)") do
-      div(class: "flex flex-wrap gap-2") do
-        render Button.new(href: fiscal_year_journal_entries_path(@fiscal_year), variant: :secondary, size: :sm) { "仕訳帳" }
-        render Button.new(href: general_ledger_fiscal_year_path(@fiscal_year), variant: :secondary, size: :sm) { "総勘定元帳" }
-        render Button.new(href: income_statement_fiscal_year_path(@fiscal_year), variant: :secondary, size: :sm) { "損益計算書" }
-        render Button.new(href: balance_sheet_fiscal_year_path(@fiscal_year), variant: :secondary, size: :sm) { "貸借対照表" }
-        render Button.new(href: depreciation_fiscal_year_path(@fiscal_year), variant: :secondary, size: :sm) { "減価償却" }
-        render Button.new(href: fixed_asset_tax_fiscal_year_path(@fiscal_year), variant: :secondary, size: :sm) { "償却資産税" }
-      end
-    end
-  end
-
-  def analysis_links
-    render Card.new(title: "分析・節税 (Analysis & Planning)") do
-      div(class: "flex flex-wrap gap-2") do
-        render Button.new(href: cashflow_fiscal_year_path(@fiscal_year), variant: :secondary, size: :sm) { "キャッシュフロー" }
-        render Button.new(href: tax_reserve_fiscal_year_path(@fiscal_year), variant: :secondary, size: :sm) { "納税準備" }
-        render Button.new(href: tax_saving_fiscal_year_path(@fiscal_year), variant: :secondary, size: :sm) { "節税シミュレーション" }
-      end
-    end
-  end
-
   def section_header(title, &actions)
     div(class: "flex items-center justify-between gap-3 mb-4") do
-      h2(class: "text-base font-semibold text-ink") { title }
+      h2(class: "whitespace-nowrap text-base font-semibold text-ink") { title }
       div(class: "flex items-center gap-2", &actions)
-    end
-  end
-
-  def total(label, amount, note: nil)
-    span(class: "text-muted") do
-      plain "#{label} "
-      span(class: "ml-1 text-lg font-semibold tabular-nums text-ink") { yen(amount) }
-      plain note if note
     end
   end
 
   # Latest entries, each linking to its edit form (which comes back here), plus
   # 複製 where copy_path gives a path for the entry. Its inline row loads into
-  # the empty frame under the entry.
-  def recent_entries(id:, records:, label:, edit_path:, empty:, copy_path: nil)
+  # the empty frame under the entry. by_month heads each month's entries with
+  # the month and what was spent in it (実額, from the cashflow months).
+  def recent_entries(id:, records:, label:, edit_path:, empty:, copy_path: nil, by_month: false)
     if records.empty?
       p(class: "text-sm text-muted py-2") { empty }
       return
     end
 
     ul(id: id, class: "divide-y divide-line border-t border-line") do
-      records.each do |record|
+      records.each_with_index do |record, index|
         copy = copy_path&.call(record)
+        month_heading(record.date.month) if by_month && record.date.month != (index.zero? ? nil : records[index - 1].date.month)
         li do
           div(class: "flex items-center gap-3") do
             a(href: edit_path.(record), class: "flex min-w-0 flex-1 items-baseline gap-3 py-2 px-2 -mx-2 rounded-md text-sm hover:bg-sunken") do
@@ -403,6 +481,13 @@ class Views::FiscalYears::Show < Views::Base
           turbo_frame(id: Views::Revenues::CopyRow.frame_id(record), class: "block") if copy
         end
       end
+    end
+  end
+
+  def month_heading(month)
+    li(class: "flex items-baseline justify-between gap-3 bg-sunken px-2 py-1 -mx-2 text-xs text-muted") do
+      span(class: "font-semibold text-ink") { "#{month}月" }
+      span(class: "tabular-nums") { "支出 #{yen(@months[month - 1].expense)}" }
     end
   end
 

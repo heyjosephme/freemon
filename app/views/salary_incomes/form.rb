@@ -10,7 +10,7 @@ class Views::SalaryIncomes::Form < Views::Base
     url = @salary_income.persisted? ? fiscal_year_salary_income_path(@fiscal_year) : fiscal_year_salary_income_path(@fiscal_year)
     method = @salary_income.persisted? ? :patch : :post
 
-    form_with(model: @salary_income, url: url, method: method, class: "space-y-6") do |f|
+    form_with(model: @salary_income, url: url, method: method, class: "max-w-2xl space-y-6") do |f|
       render Card.new(title: "源泉徴収票の情報") do
         p(class: "text-sm text-muted mb-4") { "勤務先の源泉徴収票に記載されている金額を入力してください。" }
 

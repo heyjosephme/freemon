@@ -33,6 +33,29 @@ class DashboardEntryTest < ApplicationSystemTestCase
                    expense.purchase_channel ]
   end
 
+  test "the next quick-add keeps the date of the one just added" do
+    visit fiscal_year_path(@fiscal_year)
+    within("#quick-add-expense") do
+      fill_in "日付", with: "2031-05-20"
+      fill_in "内容", with: "電車"
+      fill_in "金額（税込）", with: "500"
+      click_on "追加"
+    end
+
+    within("#quick-add-expense") do
+      assert_field "日付", with: "2031-05-20"
+      assert_selector "input[name='expense[description]'][autofocus]"
+      fill_in "内容", with: "昼食"
+      fill_in "金額（税込）", with: "1200"
+      click_on "追加"
+    end
+    assert_equal [ Date.new(2031, 5, 20) ] * 2, @fiscal_year.expenses.pluck(:date)
+
+    visit fiscal_year_path(@fiscal_year)
+    assert_field "日付", with: "2031-06-15" # a fresh visit starts on today again
+    assert_no_selector "input[autofocus]"
+  end
+
   test "a quick-add with a problem opens the full form, which still comes back here" do
     visit fiscal_year_path(@fiscal_year)
     within("#quick-add-expense") do
