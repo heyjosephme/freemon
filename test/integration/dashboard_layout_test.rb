@@ -29,6 +29,18 @@ class DashboardLayoutTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "every sidebar link has an icon to the left of its label" do
+    get fiscal_year_url(@fiscal_year)
+
+    assert_select "nav a[class~=rounded-md]", count: 18 do |links|
+      links.each do |link|
+        assert_equal "svg", link.elements.first.name, link.text
+        assert_equal "true", link.elements.first["aria-hidden"]
+        assert link.text.present?
+      end
+    end
+  end
+
   test "pages outside a year link into the home year" do
     travel_to Date.new(2099, 6, 1) do
       get accounts_url

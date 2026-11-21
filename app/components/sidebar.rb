@@ -5,7 +5,7 @@
 # 勘定科目 belongs to a fiscal year, so the links point into the year being viewed,
 # or the home year on pages that have none.
 class Components::Sidebar < Components::Base
-  ITEM = "block whitespace-nowrap rounded-md px-3 py-1.5 text-sm"
+  ITEM = "flex items-center gap-2.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm"
   HEADING = "hidden lg:block px-3 pt-5 pb-1 text-xs font-medium text-subtle"
 
   def initialize(fiscal_years: [], active_fiscal_year: nil, current_path: nil)
@@ -25,8 +25,8 @@ class Components::Sidebar < Components::Base
       div(class: "flex gap-1 overflow-x-auto px-2 py-3 lg:block lg:px-2 lg:pb-6") do
         year_links if @year
         heading "共通 (Shared)"
-        item "定期経費", recurring_expenses_path
-        item "勘定科目", accounts_path
+        item "定期経費", "repeat", recurring_expenses_path
+        item "勘定科目", "list-tree", accounts_path
       end
     end
   end
@@ -34,41 +34,46 @@ class Components::Sidebar < Components::Base
   private
 
   def year_links
-    item "ホーム", fiscal_year_path(@year), exact: true
-    item "経費", fiscal_year_expenses_path(@year)
-    item "売上", fiscal_year_revenues_path(@year)
+    item "ホーム", "house", fiscal_year_path(@year), exact: true
+    item "経費", "receipt-japanese-yen", fiscal_year_expenses_path(@year)
+    item "売上", "banknote", fiscal_year_revenues_path(@year)
 
     heading "申告 (Filing)"
-    item "給与所得", @year.salary_income ? fiscal_year_salary_income_path(@year) : new_fiscal_year_salary_income_path(@year)
-    item "所得控除", fiscal_year_deductions_path(@year)
-    item "税額計算", tax_summary_fiscal_year_path(@year)
-    item "納税準備", tax_reserve_fiscal_year_path(@year)
-    item "節税シミュレーション", tax_saving_fiscal_year_path(@year)
+    item "給与所得", "briefcase", @year.salary_income ? fiscal_year_salary_income_path(@year) : new_fiscal_year_salary_income_path(@year)
+    item "所得控除", "circle-minus", fiscal_year_deductions_path(@year)
+    item "税額計算", "calculator", tax_summary_fiscal_year_path(@year)
+    item "納税準備", "piggy-bank", tax_reserve_fiscal_year_path(@year)
+    item "節税シミュレーション", "lightbulb", tax_saving_fiscal_year_path(@year)
 
     heading "レポート (Reports)"
-    item "キャッシュフロー", cashflow_fiscal_year_path(@year)
-    item "損益計算書", income_statement_fiscal_year_path(@year)
-    item "貸借対照表", balance_sheet_fiscal_year_path(@year)
+    item "キャッシュフロー", "chart-column", cashflow_fiscal_year_path(@year)
+    item "損益計算書", "trending-up", income_statement_fiscal_year_path(@year)
+    item "貸借対照表", "scale", balance_sheet_fiscal_year_path(@year)
 
     heading "帳簿 (Books)"
-    item "仕訳帳", fiscal_year_journal_entries_path(@year)
-    item "総勘定元帳", general_ledger_fiscal_year_path(@year)
-    item "減価償却", depreciation_fiscal_year_path(@year)
-    item "償却資産税", fixed_asset_tax_fiscal_year_path(@year)
+    item "仕訳帳", "book-open", fiscal_year_journal_entries_path(@year)
+    item "総勘定元帳", "book-text", general_ledger_fiscal_year_path(@year)
+    item "減価償却", "trending-down", depreciation_fiscal_year_path(@year)
+    item "償却資産税", "landmark", fixed_asset_tax_fiscal_year_path(@year)
 
     heading "#{@year.year}年"
-    item "設定", edit_fiscal_year_path(@year)
+    item "設定", "settings", edit_fiscal_year_path(@year)
   end
 
   def heading(text) = p(class: HEADING) { text }
 
-  def item(text, href, exact: false)
+  def item(text, icon, href, exact: false)
     current = @current_path == href || (!exact && @current_path.to_s.start_with?("#{href}/"))
     if current
-      a(href: href, class: "#{ITEM} bg-primary-soft font-semibold text-primary", aria_current: "page") { text }
+      a(href: href, class: "#{ITEM} bg-primary-soft font-semibold text-primary", aria_current: "page") { icon_and_label(icon, text) }
     else
-      a(href: href, class: "#{ITEM} text-muted hover:bg-sunken hover:text-ink") { text }
+      a(href: href, class: "#{ITEM} text-muted hover:bg-sunken hover:text-ink") { icon_and_label(icon, text) }
     end
+  end
+
+  def icon_and_label(icon, text)
+    render Components::Icon.new(icon, class: "h-4 w-4 shrink-0")
+    plain text
   end
 
   def year_switcher
