@@ -33,14 +33,18 @@ class Expense < ApplicationRecord
   # How an asset's cost becomes 必要経費 (amounts are tax-included, 税込経理):
   #   immediate_expense    under ¥100,000: in full when bought (少額の減価償却資産)
   #   lump_sum_3_year      ¥100,000 to under ¥200,000: a third a year for three years (一括償却資産)
-  #   small_asset_special  ¥100,000 to under ¥400,000: in full when bought; 青色申告 only, up to
-  #                        ¥3,000,000 of assets a year (少額減価償却資産の特例)
+  #   small_asset_special  ¥100,000 to under ¥400,000 (¥300,000 if bought before April 2026): in full
+  #                        when bought; 青色申告 only, up to ¥3,000,000 of assets a year
+  #                        (少額減価償却資産の特例, 措法28条の2)
   #   normal_depreciation  straight line over its useful life (定額法), the first year by month
   enum :accounting_method, { immediate_expense: 0, lump_sum_3_year: 1, small_asset_special: 2, normal_depreciation: 3 }
 
   IMMEDIATE_LIMIT = 100_000
   LUMP_SUM_LIMIT = 200_000
   SMALL_ASSET_LIMIT = 400_000
+  # The 令和8年度 reform raised the special measure's limit for assets acquired from this date.
+  SMALL_ASSET_LIMIT_RAISED_ON = Date.new(2026, 4, 1)
+  SMALL_ASSET_LIMIT_BEFORE_RAISE = 300_000
   SMALL_ASSET_ANNUAL_CAP = 3_000_000
 
   PURCHASE_CHANNEL_LABELS = {
@@ -75,6 +79,9 @@ class Expense < ApplicationRecord
 
   # Assets whose cost is spread over later years rather than deducted when bought.
   scope :depreciable, -> { asset.where(accounting_method: [ :lump_sum_3_year, :normal_depreciation ]) }
+  # Assets declared for 償却資産税: tangible ones written off by the special measure or by
+  # depreciation. Those under ¥100,000 expensed at once, 一括償却資産 and software are exempt.
+  scope :fixed_asset_taxable, -> { asset.where(accounting_method: [ :small_asset_special, :normal_depreciation ]).where.not(category: :software) }
   scope :written_off_when_paid, -> { where(accounting_method: [ nil, :immediate_expense, :small_asset_special ]) }
 
   before_validation :settle_asset_fields
@@ -124,6 +131,11 @@ class Expense < ApplicationRecord
 
   def depreciable? = lump_sum_3_year? || normal_depreciation?
 
+  # The special measure's limit for this asset, by the day it was bought.
+  def small_asset_limit
+    date && date < SMALL_ASSET_LIMIT_RAISED_ON ? SMALL_ASSET_LIMIT_BEFORE_RAISE : SMALL_ASSET_LIMIT
+  end
+
   # A short note for lists, e.g. "資産・定額法4年".
   def asset_summary
     return unless asset?
@@ -164,12 +176,13 @@ class Expense < ApplicationRecord
     elsif accounting_method.nil? && amount.present?
       self.accounting_method = suggested_accounting_method
     end
-    self.useful_life = nil unless normal_depreciation?
+    # The special measure keeps a useful life too: 償却資産税 values the asset by it.
+    self.useful_life = nil unless normal_depreciation? || small_asset_special?
   end
 
   def suggested_accounting_method
     if amount < IMMEDIATE_LIMIT then :immediate_expense
-    elsif amount < SMALL_ASSET_LIMIT && fiscal_year&.blue? && amount <= small_asset_room then :small_asset_special
+    elsif amount < small_asset_limit && fiscal_year&.blue? && amount <= small_asset_room then :small_asset_special
     elsif amount < LUMP_SUM_LIMIT then :lump_sum_3_year
     else :normal_depreciation
     end
@@ -177,7 +190,7 @@ class Expense < ApplicationRecord
 
   # What's left this year under the special measure's ¥3,000,000 cap, not counting this expense.
   def small_asset_room
-    SMALL_ASSET_ANNUAL_CAP - fiscal_year.expenses.small_asset_special.where.not(id: id).sum(:amount)
+    SMALL_ASSET_ANNUAL_CAP - fiscal_year.small_asset_special_total(except: self)
   end
 
   def accounting_method_fits
@@ -193,12 +206,15 @@ class Expense < ApplicationRecord
     when "lump_sum_3_year"
       errors.add(:accounting_method, "一括償却資産は10万円以上20万円未満の資産だけです") unless amount.in?(IMMEDIATE_LIMIT...LUMP_SUM_LIMIT)
     when "small_asset_special"
-      if !amount.in?(IMMEDIATE_LIMIT...SMALL_ASSET_LIMIT)
-        errors.add(:accounting_method, "少額減価償却資産の特例は10万円以上40万円未満の資産だけです")
+      if !amount.in?(IMMEDIATE_LIMIT...small_asset_limit)
+        errors.add(:accounting_method, "少額減価償却資産の特例は10万円以上#{small_asset_limit / 10_000}万円未満の資産だけです" \
+                                       "#{'（2026年3月までの取得は30万円未満）' if small_asset_limit < SMALL_ASSET_LIMIT}")
       elsif !fiscal_year&.blue?
         errors.add(:accounting_method, "少額減価償却資産の特例は青色申告だけで使えます")
       elsif amount > small_asset_room
         errors.add(:accounting_method, "少額減価償却資産の特例は年300万円までです（この年の残り ¥#{small_asset_room.to_fs(:delimited)}）")
+      elsif useful_life.present? && !useful_life.between?(2, 50)
+        errors.add(:useful_life, "耐用年数を2〜50年で入力してください（例: パソコン 4年）")
       end
     when "normal_depreciation"
       errors.add(:useful_life, "耐用年数を2〜50年で入力してください（例: パソコン 4年）") unless useful_life.to_i.between?(2, 50)

@@ -96,6 +96,11 @@ class FiscalYear < ApplicationRecord
     (depreciable_assets + expenses.small_asset_special.to_a).sort_by { |asset| [ asset.date, asset.id ] }
   end
 
+  # This year's purchases under the 少額減価償却資産の特例, which allows ¥3,000,000 a year.
+  def small_asset_special_total(except: nil)
+    expenses.small_asset_special.where.not(id: except&.id).sum(:amount)
+  end
+
   # The 消費税 this year's sales and purchases give rise to (cheapest method, as on the reserve page).
   def consumption_tax_payable = ConsumptionTaxCalculator.new(self).calculate[:payable]
 

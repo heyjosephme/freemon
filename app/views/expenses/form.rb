@@ -79,13 +79,13 @@ class Views::Expenses::Form < Views::Base
           f.label :accounting_method, "償却方法 (Accounting method)", class: LABEL
           f.select :accounting_method, [ [ "自動（金額から判定）", "" ], *Expense::ACCOUNTING_METHOD_LABELS.map { |key, label| [ label, key ] } ], {},
             class: input_classes
-          p(class: "mt-1 text-sm text-muted") { "自動: 10万円未満は全額経費、40万円未満は少額減価償却資産の特例（青色申告）、それ以上は定額法。" }
+          p(class: "mt-1 text-sm text-muted") { "自動: 10万円未満は全額経費、40万円未満（2026年3月までの取得は30万円未満）は少額減価償却資産の特例（青色申告）、それ以上は定額法。" }
           @expense.errors[:accounting_method].each do |error|
             p(class: "mt-1 text-sm text-negative") { error }
           end
         end
         field(f, :useful_life, "耐用年数 (Useful life, years)", type: :number_field, min: 2, max: 50,
-          hint: "定額法のときだけ。例: パソコン 4年、サーバー・カメラ・ソフトウェア 5年、普通自動車 6年")
+          hint: "定額法では必須。少額減価償却資産の特例では任意で、償却資産税の評価に使います。例: パソコン 4年、サーバー・カメラ・ソフトウェア 5年、普通自動車 6年")
       end
     end
   end

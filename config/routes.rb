@@ -15,6 +15,7 @@ Rails.application.routes.draw do
       get :income_statement
       get :balance_sheet
       get :depreciation
+      get :fixed_asset_tax
 
       # Analysis & planning
       get :cashflow

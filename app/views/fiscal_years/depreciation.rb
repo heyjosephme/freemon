@@ -26,6 +26,8 @@ class Views::FiscalYears::Depreciation < Views::Base
       return
     end
 
+    special_measure_summary if @fiscal_year.blue?
+
     render Card.new do
       div(class: "overflow-x-auto") do
         table(class: "min-w-full divide-y divide-line") do
@@ -41,6 +43,26 @@ class Views::FiscalYears::Depreciation < Views::Base
   end
 
   private
+
+  # How much of the 少額減価償却資産の特例's yearly allowance this year's purchases have used.
+  def special_measure_summary
+    used = @fiscal_year.small_asset_special_total
+    cap = Expense::SMALL_ASSET_ANNUAL_CAP
+
+    div(class: "mb-6") do
+      render Card.new(title: "少額減価償却資産の特例 (Special measure for small assets)") do
+        render SummaryRow.new(label: "本年の適用額（取得価額の合計・全額を必要経費に算入）", value: used)
+        render SummaryRow.new(label: "年間の限度額", value: cap)
+        render SummaryRow.new(label: "残り", value: cap - used, highlight: true)
+        p(class: "mt-3 text-xs text-muted") do
+          plain "青色申告者が10万円以上40万円未満（2026年3月までの取得は30万円未満）の資産を取得した年に全額経費にできる特例です。"
+          plain "青色申告決算書の「減価償却費の計算」の摘要に「措法28の2」と書きます。この特例を使った資産は"
+          a(href: fixed_asset_tax_fiscal_year_path(@fiscal_year), class: LINK) { "償却資産税" }
+          plain "の申告対象になります。"
+        end
+      end
+    end
+  end
 
   def header_row
     tr do

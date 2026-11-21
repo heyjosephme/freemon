@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class FiscalYearsController < ApplicationController
-  before_action :set_fiscal_year, only: [ :show, :edit, :update, :destroy, :tax_summary, :journal, :general_ledger, :income_statement, :balance_sheet, :depreciation, :cashflow, :tax_reserve, :tax_saving ]
+  before_action :set_fiscal_year, only: [ :show, :edit, :update, :destroy, :tax_summary, :journal, :general_ledger, :income_statement, :balance_sheet, :depreciation, :fixed_asset_tax, :cashflow, :tax_reserve, :tax_saving ]
 
   def index
     @fiscal_years = FiscalYear.order(year: :desc)
@@ -81,6 +81,10 @@ class FiscalYearsController < ApplicationController
 
   def depreciation
     render Views::FiscalYears::Depreciation.new(fiscal_year: @fiscal_year, assets: @fiscal_year.depreciation_table_assets)
+  end
+
+  def fixed_asset_tax
+    render Views::FiscalYears::FixedAssetTax.new(fiscal_year: @fiscal_year, estimate: FixedAssetTaxEstimator.new(@fiscal_year).calculate)
   end
 
   def tax_summary

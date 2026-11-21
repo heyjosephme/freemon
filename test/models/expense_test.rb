@@ -60,6 +60,29 @@ class ExpenseTest < ActiveSupport::TestCase
     assert_equal "lump_sum_3_year", over.accounting_method, "once the cap is used, the suggestion moves on"
   end
 
+  test "the special measure's limit was ¥300,000 for assets bought before April 2026" do
+    year = FiscalYear.create!(year: 2026)
+    assert asset(299_999, :small_asset_special, fiscal_year: year, date: Date.new(2026, 3, 31)).valid?
+    march = asset(300_000, :small_asset_special, fiscal_year: year, date: Date.new(2026, 3, 31))
+    assert_not march.valid?
+    assert_match "30万円未満", march.errors[:accounting_method].first
+    assert asset(399_999, :small_asset_special, fiscal_year: year, date: Date.new(2026, 4, 1)).valid?
+
+    assert_equal "normal_depreciation", suggested_method(year, 350_000, date: Date.new(2026, 3, 31))
+    assert_equal "small_asset_special", suggested_method(year, 350_000, date: Date.new(2026, 4, 1))
+  end
+
+  test "a 少額特例 asset may keep a useful life, for 償却資産税; other methods drop it" do
+    camera = asset(350_000, :small_asset_special, useful_life: 5)
+    assert camera.valid?
+    assert_equal 5, camera.useful_life
+    assert_not asset(350_000, :small_asset_special, useful_life: 1).valid?
+
+    chair = asset(150_000, :lump_sum_3_year, useful_life: 8)
+    assert chair.valid?
+    assert_nil chair.useful_life
+  end
+
   test "normal depreciation needs a useful life" do
     server = asset(600_000, :normal_depreciation)
     assert_not server.valid?
@@ -100,7 +123,7 @@ class ExpenseTest < ActiveSupport::TestCase
                              date: date, **attributes)
   end
 
-  def suggested_method(fiscal_year, amount)
-    asset(amount, nil, fiscal_year: fiscal_year).tap(&:valid?).accounting_method
+  def suggested_method(fiscal_year, amount, **attributes)
+    asset(amount, nil, fiscal_year: fiscal_year, **attributes).tap(&:valid?).accounting_method
   end
 end

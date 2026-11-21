@@ -346,6 +346,7 @@ class Views::FiscalYears::Show < Views::Base
         render Button.new(href: income_statement_fiscal_year_path(@fiscal_year), variant: :secondary, size: :sm) { "損益計算書" }
         render Button.new(href: balance_sheet_fiscal_year_path(@fiscal_year), variant: :secondary, size: :sm) { "貸借対照表" }
         render Button.new(href: depreciation_fiscal_year_path(@fiscal_year), variant: :secondary, size: :sm) { "減価償却" }
+        render Button.new(href: fixed_asset_tax_fiscal_year_path(@fiscal_year), variant: :secondary, size: :sm) { "償却資産税" }
       end
     end
   end
