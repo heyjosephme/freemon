@@ -22,7 +22,7 @@ class TaxSavingSimulatorTest < ActiveSupport::TestCase
     assert_equal 840_000, top.annual
     assert_equal 70_000, top.monthly
     assert top.at_max
-    assert_in_delta 169_764, top.savings, 5
+    assert_in_delta 169_203, top.savings, 5
     assert_in_delta 20.2, top.effective_rate, 0.2
   end
 

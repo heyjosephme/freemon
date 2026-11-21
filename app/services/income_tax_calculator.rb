@@ -38,9 +38,11 @@ class IncomeTaxCalculator
     # 2. Business income (事業所得)
     result[:business_revenue] = fiscal_year.total_revenue
     result[:total_expenses] = fiscal_year.total_expenses
+    result[:consumption_tax_expense] = fiscal_year.consumption_tax_expense # 租税公課 (税込経理)
     result[:blue_deduction_amount] = BLUE_DEDUCTIONS[fiscal_year.filing_type.to_sym]
 
-    business_profit_before_blue = result[:business_revenue] - result[:total_expenses] - @extra_business_expenses
+    business_profit_before_blue = result[:business_revenue] - result[:total_expenses] -
+                                  result[:consumption_tax_expense] - @extra_business_expenses
     result[:blue_deduction_applied] = if business_profit_before_blue > 0
       [ result[:blue_deduction_amount], business_profit_before_blue ].min
     else

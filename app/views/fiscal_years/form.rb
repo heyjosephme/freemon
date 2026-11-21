@@ -25,10 +25,19 @@ class Views::FiscalYears::Form < Views::Base
           errors_for(:filing_type)
         end
 
+        div(class: "mb-4") do
+          f.label :consumption_tax_timing, "消費税を経費にする時期 (When consumption tax is expensed)", class: LABEL
+          f.select :consumption_tax_timing, FiscalYear::CONSUMPTION_TAX_TIMING_LABELS.invert, {}, class: input_classes
+          p(class: "mt-1 text-sm text-muted") do
+            plain "税込経理では、納める消費税が租税公課（経費）になります。未払計上はこの年の、納付時は翌年の事業利益から引きます。"
+          end
+          errors_for(:consumption_tax_timing)
+        end
+
         div(class: "mb-6") do
           f.label :business_profit_target, "事業利益の目標 (Net business income target)", class: LABEL
           f.number_field :business_profit_target, min: 1, step: 1, class: input_classes, placeholder: "例: 5000000"
-          p(class: "mt-1 text-sm text-muted") { "任意。売上 − 経費（按分後）の年間目標額（円）。空欄なら目標なし。" }
+          p(class: "mt-1 text-sm text-muted") { "任意。売上 − 経費（按分後）− 消費税の年間目標額（円）。空欄なら目標なし。" }
           errors_for(:business_profit_target)
         end
 

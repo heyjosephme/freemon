@@ -42,6 +42,8 @@ class ConsumptionTaxCalculator
     }
     result[:recommended] = methods.min_by { |_, v| v }.first
     result[:methods] = methods
+    # What the year owes under the cheapest method; a 本則課税 refund counts as nothing to pay.
+    result[:payable] = [ methods[result[:recommended]], 0 ].max
 
     result
   end

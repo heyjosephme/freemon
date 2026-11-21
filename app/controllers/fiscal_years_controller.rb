@@ -24,7 +24,9 @@ class FiscalYearsController < ApplicationController
   end
 
   def new
-    @fiscal_year = FiscalYear.new(year: FiscalYear.suggested_new_year, filing_type: FiscalYear.latest&.filing_type || :blue_65)
+    latest = FiscalYear.latest
+    @fiscal_year = FiscalYear.new(year: FiscalYear.suggested_new_year, filing_type: latest&.filing_type || :blue_65,
+                                  consumption_tax_timing: latest&.consumption_tax_timing || :accrued)
     render Views::FiscalYears::New.new(fiscal_year: @fiscal_year)
   end
 
@@ -133,6 +135,6 @@ class FiscalYearsController < ApplicationController
   end
 
   def fiscal_year_params
-    params.expect(fiscal_year: [ :year, :filing_type, :business_profit_target ])
+    params.expect(fiscal_year: [ :year, :filing_type, :business_profit_target, :consumption_tax_timing ])
   end
 end

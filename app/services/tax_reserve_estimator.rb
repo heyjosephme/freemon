@@ -24,7 +24,7 @@ class TaxReserveEstimator
       Component.new(key: :income_tax, label: "所得税 (Income Tax)",
                     amount: clamp(income_tax[:final_tax]), timing: "翌年 3/15 まで"),
       Component.new(key: :consumption_tax, label: "消費税 (Consumption Tax)",
-                    amount: clamp(consumption_tax[:methods][consumption_tax[:recommended]]), timing: "翌年 3/31 まで"),
+                    amount: consumption_tax[:payable], timing: "翌年 3/31 まで"),
       Component.new(key: :resident_tax, label: "住民税 概算 (Resident Tax, est.)",
                     amount: resident[:total], timing: "翌年 6月〜（普通徴収 4期）"),
       Component.new(key: :health_insurance, label: "国民健康保険 概算 (Health Insurance, est.)",

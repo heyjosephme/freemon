@@ -9,6 +9,15 @@ class FiscalYear < ApplicationRecord
 
   enum :filing_type, { blue_65: 0, blue_10: 1, white: 2 }, default: :blue_65
 
+  # When this year's 消費税 becomes 租税公課 (税込経理方式): accrued at year-end as 未払金,
+  # or in the following year, when it's paid.
+  enum :consumption_tax_timing, { accrued: 0, when_paid: 1 }, prefix: :consumption_tax, default: :accrued
+
+  CONSUMPTION_TAX_TIMING_LABELS = {
+    "accrued" => "未払計上（この年の経費）",
+    "when_paid" => "納付時（翌年の経費）"
+  }.freeze
+
   # 確定申告 deadlines (month, day) in the spring after the year ends.
   FILING_DEADLINES = { "所得税" => [ 3, 15 ], "消費税" => [ 3, 31 ] }.freeze
 
@@ -18,6 +27,8 @@ class FiscalYear < ApplicationRecord
   validates :business_profit_target, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
 
   after_create :post_depreciation_of_earlier_assets
+  after_save :sync_consumption_tax_entries
+  after_destroy { JournalEntrySync.destroy(self) }
 
   # A 個人事業主's accounting period is the calendar year.
   def self.current_year = Date.current.year
@@ -85,8 +96,28 @@ class FiscalYear < ApplicationRecord
     (depreciable_assets + expenses.small_asset_special.to_a).sort_by { |asset| [ asset.date, asset.id ] }
   end
 
-  # 売上 − 経費（按分後）, before 青色申告特別控除: the 決算書's 差引金額. Negative in a loss.
-  def business_profit = total_revenue - total_expenses
+  # The 消費税 this year's sales and purchases give rise to (cheapest method, as on the reserve page).
+  def consumption_tax_payable = ConsumptionTaxCalculator.new(self).calculate[:payable]
+
+  # 消費税 deductible this year as 租税公課: this year's own when accrued, plus last year's
+  # when that year expenses it on payment. Each year's tax is deducted exactly once.
+  def consumption_tax_expense
+    (consumption_tax_accrued? ? consumption_tax_payable : 0) + consumption_tax_carried_in
+  end
+
+  # Last year's 消費税, when it's expensed this year on payment.
+  def consumption_tax_carried_in
+    previous = previous_year
+    previous&.consumption_tax_when_paid? ? previous.consumption_tax_payable : 0
+  end
+
+  def previous_year = self.class.find_by(year: year - 1)
+
+  def following_year = self.class.find_by(year: year + 1)
+
+  # 売上 − 経費（按分後）− 消費税（租税公課）, before 青色申告特別控除: the 決算書's 差引金額.
+  # Negative in a loss.
+  def business_profit = total_revenue - total_expenses - consumption_tax_expense
 
   # How far #business_profit is towards the target, as a whole percent rounded down
   # (so 100 means reached). 0 in a loss; nil without a target.
@@ -99,6 +130,13 @@ class FiscalYear < ApplicationRecord
   end
 
   private
+
+  # Reposts the 消費税 entries of this year and of last year (whose payment lands in this one).
+  def sync_consumption_tax_entries
+    return unless Account.any?
+
+    [ previous_year, self ].compact.each { |fiscal_year| JournalEntrySync.sync(fiscal_year) }
+  end
 
   # A year created after assets were bought picks up its share of their depreciation.
   def post_depreciation_of_earlier_assets

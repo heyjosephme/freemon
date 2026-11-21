@@ -228,10 +228,14 @@ class Expense < ApplicationRecord
   end
 
   def sync_journal_entry
-    JournalEntrySync.sync(self) if Account.any?
+    return unless Account.any?
+
+    JournalEntrySync.sync(self)
+    JournalEntrySync.sync(fiscal_year) # its 消費税 follows sales and purchases
   end
 
   def destroy_journal_entry
     JournalEntrySync.destroy(self)
+    JournalEntrySync.sync(fiscal_year) if Account.any? && !destroyed_by_association
   end
 end

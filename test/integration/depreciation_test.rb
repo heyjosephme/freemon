@@ -36,7 +36,7 @@ class DepreciationTest < ActionDispatch::IntegrationTest
 
     assert_match "150 工具器具備品", response.body
     assert_match "¥312,500", response.body   # 500,000 − 62,500 − 125,000
-    assert_match "¥1,037,500", response.body # 元入金: 2030's income 1,050,000 less 事業主貸 12,500
+    assert_match "¥1,017,500", response.body # 元入金: 2030's income 1,050,000 − 消費税 20,000, less 事業主貸 12,500
     assert_match "資産 = 負債 + 資本 ✓", response.body
   end
 

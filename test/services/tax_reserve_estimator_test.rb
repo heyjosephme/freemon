@@ -13,10 +13,12 @@ class TaxReserveEstimatorTest < ActiveSupport::TestCase
   test "combines income, consumption, resident and health taxes" do
     by_key = @reserve[:components].to_h { |c| [ c.key, c.amount ] }
 
-    assert_equal 193_479, by_key[:income_tax]
-    assert_operator by_key[:consumption_tax], :>, 0
-    assert_equal 294_500, by_key[:resident_tax]
-    assert_equal 367_780, by_key[:health_insurance]
+    # 消費税 90,909 (5,000,000 × 10 / 110 × 20%) is 租税公課, so every income-based figure starts
+    # from 事業所得 3,259,091 (5,000,000 − 1,000,000 − 90,909 − 650,000).
+    assert_equal 184_188, by_key[:income_tax]
+    assert_equal 90_909, by_key[:consumption_tax]
+    assert_equal 285_400, by_key[:resident_tax]
+    assert_equal 358_324, by_key[:health_insurance]
     assert_equal by_key.values.sum, @reserve[:total]
   end
 

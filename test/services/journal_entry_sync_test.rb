@@ -50,6 +50,52 @@ class JournalEntrySyncTest < ActiveSupport::TestCase
                  lines(following.journal_entries.find_by!(source: pc))
   end
 
+  test "accrued 消費税 posts 租税公課 against 未払金 at year-end and follows the year's sales" do
+    revenue = @fiscal_year.revenues.create!(client_name: "取引先", amount: 1_100_000, date: Date.new(2030, 6, 1))
+
+    accrual = JournalEntry.where(source: @fiscal_year).sole
+    assert_equal Date.new(2030, 12, 31), accrual.date
+    assert_equal [ [ "debit", "租税公課", 20_000 ], [ "credit", "未払金", 20_000 ] ], lines(accrual) # 100,000 × 20%
+
+    revenue.update!(amount: 2_200_000)
+    assert_equal [ [ "debit", "租税公課", 40_000 ], [ "credit", "未払金", 40_000 ] ], lines(JournalEntry.where(source: @fiscal_year).sole)
+
+    revenue.destroy!
+    assert_empty JournalEntry.where(source: @fiscal_year)
+  end
+
+  test "the accrued 消費税 is settled from the bank on 3/31 once the following year exists" do
+    @fiscal_year.revenues.create!(client_name: "取引先", amount: 1_100_000, date: Date.new(2030, 6, 1))
+    following = FiscalYear.create!(year: 2031)
+
+    payment = following.journal_entries.find_by!(source: @fiscal_year)
+    assert_equal Date.new(2031, 3, 31), payment.date
+    assert_equal [ [ "debit", "未払金", 20_000 ], [ "credit", "普通預金", 20_000 ] ], lines(payment)
+    assert_equal 2, JournalEntry.where(source: @fiscal_year).count
+  end
+
+  test "switching to 納付時 moves the 租税公課 into the following year" do
+    @fiscal_year.revenues.create!(client_name: "取引先", amount: 1_100_000, date: Date.new(2030, 6, 1))
+    following = FiscalYear.create!(year: 2031)
+
+    @fiscal_year.update!(consumption_tax_timing: :when_paid)
+
+    payment = JournalEntry.where(source: @fiscal_year).sole
+    assert_equal following, payment.fiscal_year
+    assert_equal [ [ "debit", "租税公課", 20_000 ], [ "credit", "普通預金", 20_000 ] ], lines(payment)
+
+    @fiscal_year.update!(consumption_tax_timing: :accrued)
+    assert_equal [ @fiscal_year, following ], JournalEntry.where(source: @fiscal_year).order(:date).map(&:fiscal_year)
+  end
+
+  test "deleting a year removes its 消費税 payment from the following year" do
+    @fiscal_year.revenues.create!(client_name: "取引先", amount: 1_100_000, date: Date.new(2030, 6, 1))
+    FiscalYear.create!(year: 2031)
+
+    @fiscal_year.destroy!
+    assert_empty JournalEntry.where(source_type: "FiscalYear")
+  end
+
   test "lump-sum assets post to 一括償却資産 and software to ソフトウェア" do
     lump = create_expense(amount: 150_000, kind: :asset, accounting_method: :lump_sum_3_year)
     software = create_expense(amount: 500_000, category: :software, kind: :asset, accounting_method: :normal_depreciation, useful_life: 5)

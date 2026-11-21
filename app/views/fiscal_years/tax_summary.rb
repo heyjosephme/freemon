@@ -61,6 +61,9 @@ class Views::FiscalYears::TaxSummary < Views::Base
       h3(class: "text-sm font-semibold text-muted mb-2") { "事業所得 (Business Income)" }
       render SummaryRow.new(label: "事業収入 (Revenue)") { render MoneyDisplay.new(amount: @it[:business_revenue]) }
       render SummaryRow.new(label: "経費 (Expenses)", indent: true) { render MoneyDisplay.new(amount: -@it[:total_expenses]) }
+      if @it[:consumption_tax_expense] > 0
+        render SummaryRow.new(label: "消費税・租税公課 (Consumption tax)", indent: true) { render MoneyDisplay.new(amount: -@it[:consumption_tax_expense]) }
+      end
       render SummaryRow.new(label: "青色申告特別控除", indent: true) { render MoneyDisplay.new(amount: -@it[:blue_deduction_applied]) }
       render SummaryRow.new(label: "事業所得", highlight: true) { render MoneyDisplay.new(amount: @it[:business_income]) }
 

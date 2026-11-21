@@ -4,6 +4,11 @@
 # Assets spread over several years get one entry when bought and one 減価償却
 # entry at the end of each year, in every fiscal year that exists so far
 # (FiscalYear adds its own when it's created later).
+#
+# A FiscalYear is the source of its own 消費税 entries (税込経理方式): 租税公課 accrued
+# at year-end as 未払金 and settled by the 3/31 deadline, or expensed on that date,
+# depending on the year's consumption_tax_timing. The following year's entry waits
+# until that year exists.
 class JournalEntrySync
   # Maps Expense categories to Account codes
   CATEGORY_ACCOUNT_MAP = {
@@ -24,7 +29,9 @@ class JournalEntrySync
   LUMP_SUM = "151"        # 一括償却資産
   SOFTWARE = "152"        # ソフトウェア
   OWNER_DRAWINGS = "190"  # 事業主貸
+  PAYABLE = "202"         # 未払金
   SALES = "401"           # 売上高
+  TAXES = "501"           # 租税公課
   DEPRECIATION = "511"    # 減価償却費
 
   def self.sync(source)
@@ -44,6 +51,7 @@ class JournalEntrySync
     case @source
     when Revenue then sync_revenue
     when Expense then sync_expense
+    when FiscalYear then sync_consumption_tax
     end
   end
 
@@ -82,6 +90,22 @@ class JournalEntrySync
       business = charge * @source.business_ratio / 100
       post(fiscal_year, Date.new(year, 12, 31), "減価償却: #{@source.description}",
            debit: { DEPRECIATION => business, OWNER_DRAWINGS => charge - business }, credit: { account => charge })
+    end
+  end
+
+  def sync_consumption_tax
+    tax = @source.consumption_tax_payable
+    return unless tax.positive?
+
+    label = "#{@source.year}年分 消費税"
+    following = @source.following_year
+    paid_on = Date.new(@source.year + 1, 3, 31)
+
+    if @source.consumption_tax_accrued?
+      post(@source, Date.new(@source.year, 12, 31), "#{label}（未払計上）", debit: { TAXES => tax }, credit: { PAYABLE => tax })
+      post(following, paid_on, "#{label}の納付", debit: { PAYABLE => tax }, credit: { BANK => tax }) if following
+    elsif following
+      post(following, paid_on, "#{label}の納付", debit: { TAXES => tax }, credit: { BANK => tax })
     end
   end
 
